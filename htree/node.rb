@@ -343,7 +343,7 @@ module HTree
     def pretty_print(pp)
       pp.group(1, '{', '}') {
         pp.text self.class.name.sub(/.*::/,'').downcase
-        @str.each_line {|line|
+        @str.scan(/[^\r\n]*(?:\r\n?|\n|\z)/) {|line|
           pp.breakable
           pp.pp line
         }
