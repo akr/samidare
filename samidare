@@ -246,7 +246,10 @@ class Entry
 
     return if content_encoding
 
-    examine_html(content_type, content_charset, content, log)
+    decoded_content = content.decode_charset(content_charset)
+
+    examine_html(content_type, decoded_content, log)
+    examine_lirs(decoded_content, log)
 
     case @config['UpdateInfo']
     when 'lirs'
@@ -256,10 +259,10 @@ class Entry
     end
   end
 
-  def examine_html(content_type, content_charset, content, log)
+  def examine_html(content_type, decoded_content, log)
     return if %r{\A(?:text/html|text/xml)\z} !~ content_type
 
-    t = HTree.parse(content.decode_charset(content_charset))
+    t = HTree.parse(decoded_content)
 
     title = t.title
     log['extractedTitle'] = title if title
@@ -282,6 +285,24 @@ class Entry
     }
     log['checksum_filtered'] = t.rcdata.sum
     log['checksum_filter'] = ['IgnorePath', *ignore_path] if !ignore_path.empty?
+  end
+
+  def examine_lirs(decoded_content, log)
+    uri = @config['URI']
+    return if %r{\.lirs(?:.gz)?\z} !~ uri
+    return if log['extractedTitle'] && log['extractedAuthor']
+
+    uris = related_uris
+
+    LIRS.decode(decoded_content).each {|record|
+      if uris.include? record.target_url
+        log['extractedTitle'] = record.target_title
+        log['extractedAuthor'] = record.target_maintainer
+        break
+      end
+    }
+  rescue LIRS::Error
+    # ignore invalid lirs file.
   end
 
   def path2pattern(*paths)
