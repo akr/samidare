@@ -86,7 +86,7 @@ class Entry
   def expect_next_by_periodical
     h = find_last_200
     return nil unless h
-    periodical = h['periodical']
+    periodical = h['lastModifiedSequence'] || h['periodical']
     return nil unless periodical 
     return nil if periodical.length < 2
     last_modified = periodical.last
@@ -563,7 +563,7 @@ class Entry
   }
   StatusMap.default = 'e' # Error
 
-  MaxPeriodicalNum = 10
+  MaxPeriodicalNum = 30
   def add_periodical_info(h)
     return if h['status'] != '200'
 
@@ -571,7 +571,10 @@ class Entry
 
     periodical = nil
     logseq.reverse_each {|l|
-      if l['periodical']
+      if l['lastModifiedSequence']
+        periodical = l['lastModifiedSequence'].dup
+        break
+      elsif l['periodical']
         periodical = l['periodical'].dup
         break
       end
@@ -591,7 +594,7 @@ class Entry
       periodical = periodical[(-MaxPeriodicalNum)..(-1)]
     end
 
-    h['periodical'] = periodical if !periodical.empty?
+    h['lastModifiedSequence'] = periodical if !periodical.empty?
   end
 
   def content_unchanged(log1, log2)
@@ -1089,7 +1092,7 @@ class Samidare
       q.def_option('--dump-filenames', 'dump filenames of specified entry') { @opt_dump_filenames = true }
       q.def_option('--dump-filenames2', 'dump two recent filenames') { @opt_dump_filenames2 = true }
       q.def_option('--remove-entry', 'remove entry') { @opt_remove_entry = true }
-      q.def_option('--single-thread', 'diable multi-threading') { $opt_max_threads = 1 }
+      q.def_option('--single-thread', 'disable multi-threading') { $opt_max_threads = 1 }
       q.def_option('--diff-content', 'show difference') { @opt_diff_content = true }
       q.parse!
     }
