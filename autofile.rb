@@ -85,12 +85,10 @@ class AutoFile
 
     if /\ALIRS/i =~ initial_content
       ext = '.lirs'
-    elsif /<!DOCTYPE rss|\A<rss /i =~ initial_content
-      ext = '.rss'
-    elsif /<!DOCTYPE rdf:RDF|<rdf:RDF/i =~ initial_content
-      ext = '.rdf'
-    elsif /<html|<!DOCTYPE HTML/i =~ initial_content
-      ext = '.html'
+    elsif /<!DOCTYPE (?:(rss)|(rdf):RDF|(html))/i =~ initial_content
+      ext = ".#{$+.downcase}"
+    elsif /<(rss)|<(rdf):RDF|<(html)/i =~ initial_content
+      ext = ".#{$+.downcase}"
     elsif content_type == 'text/html'
       ext = '.html'
     elsif /\A<\?xml/i =~ initial_content
