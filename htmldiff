@@ -54,6 +54,9 @@ tree2.traverse_with_path {|n, path|
   text2 << [n.text, path] if HTree::Text === n
 }
 
+puts "checksum1: #{tree1.rcdata.sum}"
+puts "checksum2: #{tree1.rcdata.sum}"
+
 num = 10
 0.upto([text1.length, text2.length].max - 1) {|i|
   t1, p1 = text1[i]
