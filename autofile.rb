@@ -81,6 +81,7 @@ class AutoFile
       ext = ''
     end
 
+    filename_hint.delete! '^0-9A-Za-z_/.-'
     arr = filename_hint.split(%r{/+})
     arr.reject! {|elt| elt.empty? }
     case arr.length
