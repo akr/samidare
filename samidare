@@ -987,7 +987,7 @@ class Samidare
       q.def_option('--dump-status', 'dump status') { @opt_dump_status = true }
       q.def_option('--dump-template-data', 'dump data for expand template') { @opt_dump_template_data = true }
       q.def_option('--dump-filenames', 'dump filenames of specified entry') { @opt_dump_filenames = true }
-      q.def_option('--dump-filenames2', 'dump two filenames of specified entry') { @opt_dump_filenames2 = true }
+      q.def_option('--dump-filenames2', 'dump two recent filenames') { @opt_dump_filenames2 = true }
       q.def_option('--remove-entry', 'remove entry') { @opt_remove_entry = true }
       q.def_option('--single-thread', 'diable multi-threading') { $opt_max_threads = 1 }
       q.parse!
