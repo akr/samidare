@@ -293,7 +293,7 @@ class Entry
     old_check_key = old_log ? extract_html_check_key(old_log) : {}
     updated_uris = {}
     (new_check_key.keys - old_check_key.keys).each {|uri|
-      p [:HTML_UPDATE, uri, @config['URI']]
+      p [:HTML_UPDATE, uri, @config['URI']]; STDOUT.flush
       updated_uris[uri] = true
     }
     (new_check_key.keys & old_check_key.keys).each {|uri|
@@ -301,12 +301,14 @@ class Entry
         pp [:HTML_UPDATE, uri, @config['URI'],
             "#{Mconv.conv(old_check_key[uri], Mconv.internal_mime_charset, 'UTF-8')}",
             "#{Mconv.conv(new_check_key[uri], Mconv.internal_mime_charset, 'UTF-8')}"]
+        STDOUT.flush
         updated_uris[uri] = true
       end
     }
     updated_uris.each_key {|uri|
       ENTRIES[uri].hash['_update_info'] = true
     }
+    STDERR.puts "HTML total: #{updated_uris.size} / #{new_check_key.size} - #{@config['URI']}" if $VERBOSE
   end
 
   def extract_html_check_key(log)
@@ -328,11 +330,12 @@ class Entry
     doc.each_element(entry_xpath) {|entry|
       uris = []
       if entry.name == 'a'
-        uri = (base_uri + URI.parse(entry.attribute("href").to_s)).to_s
+        e = entry
+        uri = (base_uri + URI.parse(e.attribute("href").to_s)).to_s
         uris << uri if uri && ENTRIES.include?(uri)
       else
         entry.each_element(".//a") {|e|
-          uri = (base_uri + URI.parse(entry.attribute("href").to_s)).to_s
+          uri = (base_uri + URI.parse(e.attribute("href").to_s)).to_s
           uris << uri if uri && ENTRIES.include?(uri)
         }
       end
