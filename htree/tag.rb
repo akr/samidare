@@ -70,6 +70,10 @@ module HTree
       end
     end
 
+    def get_attribute_text(name)
+      fetch_attribute_text(name, nil)
+    end
+
     def inspect; "<stag: #{@str.inspect}>" end
   end
 
