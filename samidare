@@ -679,7 +679,7 @@ class Samidare
         stat1 = target.stat
         if nonblock
           unless target.flock(File::LOCK_EX | File::LOCK_NB)
-            STDERR.puts "fail to lock: #{filename}" if $VERBOSE
+            STDERR.puts "fail to lock: #{filename}"
             return
           end
         else
@@ -890,11 +890,19 @@ class Samidare
         elsif @opt_remove_entry
           removing_uris = {}
           entries.each {|e|
-            unless (e.related_uris & ARGV).empty?
+            unless (e.related_uris & ARGV).empty? || e.status['_log'].empty?
               removing_uris[e.uri] = true
             end
           }
-          status.reject! {|h| removing_uris[h['URI']] }
+          status.reject! {|log|
+            uri = log['URI']
+            if removing_uris[uri]
+              STDERR.puts "removed: #{uri}" if $VERBOSE
+              true
+            else
+              false
+            end
+          }
         else
           unless readonly
             entries.concurrent_map {|entry|
