@@ -943,11 +943,12 @@ class Samidare
         }
       else
         unless readonly
-          entries.concurrent_map {|entry|
+          update_info_entries, non_update_info_entries = entries.partition {|e| e.update_info? }
+          update_info_entries.concurrent_map {|entry|
             next unless entry.update_info?
             entry.check if entry.should_check? && (@opt_force_check || entry.timing_check)
           }
-          entries.concurrent_map {|entry|
+          non_update_info_entries.concurrent_map {|entry|
             next if entry.update_info?
             entry.check if entry.should_check? && (@opt_force_check || entry.timing_check)
           }
