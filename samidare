@@ -1049,7 +1049,7 @@ class Samidare
             entry.check if entry.should_check? && (@opt_force_check || entry.timing_check)
           }
         end
-        entries.reject! {|entry| entry.update_info? }
+        update_infos, entries = entries.partition {|entry| entry.update_info? }
         data = {
           "antenna" =>
           entries.map {|entry| entry.presentation_data }.sort_by {|h|
@@ -1059,7 +1059,16 @@ class Samidare
             else
               [0, h['last-modified'], h['title']]
             end
-          }.reverse
+          }.reverse,
+          "update_info" =>
+          update_infos.map {|update_info| update_info.presentation_data }.sort_by {|h|
+            # [h['last-modified'], h['title']]
+            if h['last-modified-found']
+              [1, h['last-modified-found'], h['last-modified'], h['title']]
+            else
+              [0, h['last-modified'], h['title']]
+            end
+          }
         }
         if @opt_dump_template_data
           pp data
