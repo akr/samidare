@@ -1,4 +1,5 @@
 require 'pp'
+require 'mconv'
 
 def Regexp.alt(*args)
   if args.empty?
@@ -54,7 +55,28 @@ class HTree
     end
   end
 
+  module Node
+    def text
+      str = self.html_text
+      str.gsub(/&(?:#([0-9]+)|#x([0-9a-fA-F]+)|([A-Za-z][A-Za-z0-9]*));/o) {|s|
+        if $1
+          [$1.to_i].pack("U").decode_charset('UTF-8')
+        elsif $2
+          [$2.hex].pack("U").decode_charset('UTF-8')
+        elsif $3
+          name = $3
+          if NamedCharacters.include? name
+            [NamedCharacters[name]].pack("U").decode_charset('UTF-8')
+          else
+            '?'
+          end
+        end
+      }
+    end
+  end
+
   class Doc
+    include Node
     def initialize(*elts)
       @elts = elts
     end
@@ -93,15 +115,16 @@ class HTree
       str
     end
 
-    def text
+    def html_text
       text = ''
-      @elts.each {|elt| text << elt.text }
+      @elts.each {|elt| text << elt.html_text }
       text
     end
 
   end
 
   class Elem
+    include Node
     def initialize(stag, *elts)
       @stag = stag.to_s
       @elts = elts
@@ -149,14 +172,15 @@ class HTree
       str
     end
 
-    def text
+    def html_text
       text = ''
-      @elts.each {|elt| text << elt.text }
+      @elts.each {|elt| text << elt.html_text }
       text
     end
   end
 
   module Leaf
+    include Node
     def initialize(str)
       @str = str
     end
@@ -167,17 +191,17 @@ class HTree
   class DocType
     include Leaf
     def each_element(name=nil) end
-    def text; '' end
+    def html_text; '' end
   end
   class ProcIns
     include Leaf
     def each_element(name=nil) end
-    def text; '' end
+    def html_text; '' end
   end
   class Comment
     include Leaf
     def each_element(name=nil) end
-    def text; '' end
+    def html_text; '' end
   end
   class EmptyElem
     include Leaf
@@ -197,21 +221,22 @@ class HTree
     def each_element(name=nil)
       yield self if name == nil || self.tagname == name
     end
-    def text; '' end
+    def html_text; '' end
   end
   class IgnoredETag
     include Leaf
     def each_element(name=nil) end
-    def text; '' end
+    def html_text; '' end
   end
   class Text
     include Leaf
     def each_element(name=nil) end
     QuoteHash = { '<'=>'&lt;', '>'=> '&gt;' }
-    def text
+    def html_text
       return @text if defined? @text
       @text = ''
       @text = HTree.fix_character_reference(@str).gsub(/[<>]/) { QuoteHash[$&] }
+      @text
     end
   end
 
