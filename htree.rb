@@ -198,7 +198,7 @@ module HTree
     end
     def html_text; '' end
   end
-  class IgnoredETag
+  class BogusETag
     include Leaf
     def each_element(name=nil) end
     def html_text; '' end
@@ -515,7 +515,7 @@ module HTree
           es_elts << elem if elem
           stack.last << Elem.new(es_stag, es_elts, elt)
         else
-          stack.last << IgnoredETag.new(elt.to_s)
+          stack.last << BogusETag.new(elt.to_s)
         end
       else
         stack.last << elt
@@ -599,6 +599,7 @@ if $0 == __FILE__
      simple < a >
     <p>para
     <hr>
+    </z>
     <ul>
     <ins>aa</ins>
     <li
