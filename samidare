@@ -245,6 +245,9 @@ class Entry
         log['checksum_filtered'] = t.rcdata.sum
         log['checksum_filter'] = ['IgnorePath', *ignore_path]
       end
+
+      # checksum for gzip/deflate decoded content.
+      # compression level is not affected.
       log['checksum'] = content.sum
 
       log['content'] = AutoFile.new(uri, content, content_type)
@@ -396,6 +399,17 @@ class Entry
     h['periodical'] = periodical if !periodical.empty?
   end
 
+  def content_unchanged(log1, log2)
+    return true if log1['checksum'] &&
+                   log2['checksum'] &&
+                   log1['checksum'] == log2['checksum']
+    return true if log1['checksum_filtered'] &&
+                   log2['checksum_filtered'] &&
+                   log1['checksum_filter'] == log2['checksum_filter'] &&
+                   log1['checksum_filtered'] == log2['checksum_filtered']
+    false
+  end
+
   def add_log(log)
     @hash['_log'] = [] unless @hash['_log']
 
@@ -459,17 +473,6 @@ class Entry
     unless logseq.last.equal? log
       raise "current log is not added [bug]"
     end
-  end
-
-  def content_unchanged(log1, log2)
-    return true if log1['checksum'] &&
-                   log2['checksum'] &&
-                   log1['checksum'] == log2['checksum']
-    return true if log1['checksum_filtered'] &&
-                   log2['checksum_filtered'] &&
-                   log1['checksum_filter'] == log2['checksum_filter'] &&
-                   log1['checksum_filtered'] == log2['checksum_filtered']
-    false
   end
 
   def find_first_200_with_current_content
