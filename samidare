@@ -220,12 +220,13 @@ class Entry
     log['lastModifiedString'] = meta['last-modified'] if meta['last-modified']
     log['eTag'] = meta['etag'] if meta['etag']
     content_type = log['contentType'] = page.content_type if page.content_type
-    content_charset = page.charset { @config['DefaultCharset'] || page.guess_charset }
-    content_charset = content_charset.downcase
-    log['contentCharset'] = content_charset
 
     content, content_encoding = decode_content_encoding(page, log)
     log['content'] = AutoFile.new(uri, content, content_type)
+
+    content_charset = page.charset { @config['DefaultCharset'] || content.guess_charset }
+    content_charset = content_charset.downcase
+    log['contentCharset'] = content_charset
 
     # checksum for gzip/deflate decoded content.
     # compression level is not affected.
