@@ -708,7 +708,7 @@ class Entry
     h.update @status # xxx
     h['title'] = h['Title']
     h['author'] = h['Author']
-    h['last-modified'] = '- no log -'
+    h['last-modified'] = nil
     h['info'] = ''
     h['linkURI'] = h['LinkURI']
     unless logseq.empty?
@@ -716,7 +716,7 @@ class Entry
         h['last-modified-found'] = l['clientDateBeg'] # xxx: clientDateEnd is better?
         if l.include? 'lastModifiedString'
           h['last-modified-time'] = Time.httpdate_robust(l['lastModifiedString'])
-          h['last-modified'] = Time.httpdate_robust(l['lastModifiedString']).localtime.iso8601
+          h['last-modified'] = Time.httpdate_robust(l['lastModifiedString']).localtime
           l2 = find_last_200
           unless l.equal? l2
             if l['lastModifiedString'] != l2['lastModifiedString']
@@ -727,10 +727,10 @@ class Entry
           end
         elsif l.include? 'extractedLastModified'
           h['last-modified-time'] = l['extractedLastModified']
-          h['last-modified'] = l['extractedLastModified'].getlocal.iso8601
+          h['last-modified'] = l['extractedLastModified'].getlocal
         else
           h['last-modified-time'] = l['clientDateBeg']
-          h['last-modified'] = l['clientDateBeg'].getlocal.iso8601
+          h['last-modified'] = l['clientDateBeg'].getlocal
           h['info'] << '[NoLM]'
         end
         h['title'] ||= l['extractedTitle'] if l['extractedTitle']
