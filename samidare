@@ -315,14 +315,18 @@ class Entry
   end
 
   def examine_lirs(decoded_content, log)
-    uri = @config['URI']
-    return if %r{\.lirs(?:.gz)?\z} !~ uri
+    uri = URI.parse(@config['URI'])
+    return if %r{\.lirs(?:.gz)?\z} !~ uri.path
     return if log['extractedTitle'] && log['extractedAuthor']
 
     lirs = LIRS.decode(decoded_content)
     return if lirs.size != 1
     
     lirs.each {|record|
+      target_uri = URI.parse(record.target_url)
+      return if target_uri.scheme != uri.scheme
+      return if target_uri.host.downcase != uri.host.downcase
+      log['extractedLinkURI'] = record.target_url unless log['extractedLinkURI']
       log['extractedTitle'] = record.target_title unless log['extractedTitle']
       log['extractedAuthor'] = record.target_maintainer unless log['extractedAuthor']
       log['extractedLinkURI'] = record.target_url unless log['extractedLinkURI']
@@ -606,7 +610,7 @@ class Entry
         ll << log # re-add `log'.
       end
 
-      nlogs = 2 # should be configurable?
+      nlogs = @config.fetch('NumLogs', 2)
       #pp logs.map {|ll| ll.map {|l| StatusMap[l['status']] + "#{l['checksum']}" } }
       if nlogs < logs.length
         logs[0...-nlogs] = []
