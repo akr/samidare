@@ -31,6 +31,10 @@ class Entry
   attr_reader :hash
   attr_reader :config
 
+  def antenna?
+    @config.include? 'Antenna'
+  end
+
   def should_check?
     ARGV.empty? or
     ARGV.include?(@config['URI']) or
@@ -561,6 +565,11 @@ class Webpecker
       else
         unless @opt_dont_check
           entries.concurrent_map {|entry|
+            next unless entry.antenna?
+            entry.check if entry.should_check? && (@opt_force_check || entry.timing_check)
+          }
+          entries.concurrent_map {|entry|
+            next if entry.antenna?
             entry.check if entry.should_check? && (@opt_force_check || entry.timing_check)
           }
         end
