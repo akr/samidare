@@ -167,7 +167,6 @@ module HTree
       }
     end
     alias inspect pretty_print_inspect
-
   end
 
   class DocType
@@ -625,9 +624,19 @@ if $0 == __FILE__
   <li>
   <li>
 End
+    #HTree.scan(str) {|s| p [s.mark, s] if /\S/ =~ s }
+    pp HTree.parse(str)
   else
-    str = ARGF.read
+    if ARGV.empty?
+      str = STDIN.read
+      str = str.decode_charset(str.guess_charset)
+      pp HTree.parse(str)
+    else
+      ARGV.each {|filename|
+        str = File.read(filename)
+        str = str.decode_charset(str.guess_charset)
+        pp HTree.parse(str)
+      }
+    end
   end
-  #HTree.scan(str) {|s| p [s.mark, s] if /\S/ =~ s }
-  pp HTree.parse(str)
 end
