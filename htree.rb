@@ -59,18 +59,15 @@ class HTree
     def text
       str = self.html_text
       str.gsub(/&(?:#([0-9]+)|#x([0-9a-fA-F]+)|([A-Za-z][A-Za-z0-9]*));/o) {|s|
+        u = nil
         if $1
-          [$1.to_i].pack("U").decode_charset('UTF-8')
+          u = $1.to_i
         elsif $2
-          [$2.hex].pack("U").decode_charset('UTF-8')
+          u = $2.hex
         elsif $3
-          name = $3
-          if NamedCharacters.include? name
-            [NamedCharacters[name]].pack("U").decode_charset('UTF-8')
-          else
-            '?'
-          end
+          u = NamedCharacters[$3]
         end
+        u ? [u].pack("U").decode_charset('UTF-8') : '?'
       }
     end
   end
