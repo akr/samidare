@@ -303,10 +303,10 @@ class Entry
     t = HTree.parse(decoded_content)
 
     title = t.title
-    log['extractedTitle'] = title if title
+    log['extractedTitle'] = title.to_s if title
 
     author = t.author
-    log['extractedAuthor'] = author if author
+    log['extractedAuthor'] = author.to_s if author
 
     t.traverse_element('meta', '{http://www.w3.org/1999/xhtml}meta') {|e|
       begin
@@ -899,17 +899,17 @@ class Entry
     tree2, checksum_filter2 = ignore_tree(HTree.parse(File.read(filename2).decode_charset_guess), log2)
 
     text1 = []
-    tree1.make_loc.traverse_element {|n|
+    tree1.make_loc.traverse_text {|n|
       path = n.path.sub(%r{^doc\(\)}, '')
       n = n.to_node
-      text1 << [n.to_s, path] if n.text?
+      text1 << [n.to_s, path]
     }
 
     text2 = []
-    tree2.make_loc.traverse_element {|n|
+    tree2.make_loc.traverse_text {|n|
       path = n.path.sub(%r{^doc\(\)}, '')
       n = n.to_node
-      text2 << [n.to_s, path] if n.text?
+      text2 << [n.to_s, path]
     }
 
     puts "checksum1: #{tree1.extract_text.to_s.sum} #{checksum_filter1.inspect} #{filename1}"
