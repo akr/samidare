@@ -1,5 +1,13 @@
 require 'pp'
 
+def Regexp.alt(*args)
+  if args.empty?
+    /(?!)/
+  else
+    Regexp.compile(args.map {|arg| Regexp === arg ? arg.to_s : Regexp.quote(arg) }.join('|'))
+  end
+end
+
 class HTree
   module Pat
     Name = %r{[A-Za-z_:][-A-Za-z0-9._:]*}
@@ -54,6 +62,43 @@ class HTree
       pp.object_group(self) { @elts.each {|elt| pp.breakable; pp.pp elt } }
     end
     alias inspect pretty_print_inspect
+
+    def root
+      @elts.each {|e|
+        return e if Elem === e
+      }
+      nil
+    end
+
+    def each_element(name=nil)
+      @elts.each {|elt|
+        elt.each_element(name) {|e|
+          yield e
+        }
+      }
+    end
+
+    def first_element(name)
+      self.each_element(name) {|e| return e }
+      nil
+    end
+
+    def title
+      first_element('title')
+    end
+
+    def raw_string
+      str = ''
+      @elts.each {|elt| str << elt.raw_string }
+      str
+    end
+
+    def text
+      text = ''
+      @elts.each {|elt| text << elt.text }
+      text
+    end
+
   end
 
   class Elem
@@ -71,25 +116,160 @@ class HTree
       }
     end
     alias inspect pretty_print_inspect
+
+    def extract_taginfo
+      return if defined? @tagname
+      if @stag
+        Pat::Name =~ @stag
+        @tagname = $&.downcase
+      elsif @etag
+        Pat::Name =~ @stag
+        @tagname = $&.downcase
+      else
+        @tagname = nil
+      end
+    end
+    def tagname
+      extract_taginfo
+      @tagname
+    end
+
+    def each_element(name=nil)
+      yield self if name == nil || self.tagname == name
+      @elts.each {|elt|
+        elt.each_element(name) {|e| yield e }
+      }
+    end
+
+    def raw_string
+      str = ''
+      str << @stag if @stag
+      @elts.each {|elt| str << elt.raw_string }
+      str << @etag if @etag
+      str
+    end
+
+    def text
+      text = ''
+      @elts.each {|elt| text << elt.text }
+      text
+    end
   end
 
   module Leaf
     def initialize(str)
       @str = str
     end
+    def raw_string; @str; end
     def inspect; "{#{self.class.name.sub(/.*::/,'').downcase} #{@str.inspect}}" end
   end
 
-  class DocType; include Leaf; end
-  class ProcIns; include Leaf; end
-  class Comment; include Leaf; end
-  class EmptyElem; include Leaf; end
-  class Text; include Leaf; end
-  class IgnoredETag; include Leaf; end
+  class DocType
+    include Leaf
+    def each_element(name=nil) end
+    def text; '' end
+  end
+  class ProcIns
+    include Leaf
+    def each_element(name=nil) end
+    def text; '' end
+  end
+  class Comment
+    include Leaf
+    def each_element(name=nil) end
+    def text; '' end
+  end
+  class EmptyElem
+    include Leaf
+    def extract_taginfo
+      return if defined? @tagname
+      if @str
+        Pat::Name =~ @str
+        @tagname = $&.downcase
+      else
+        @tagname = nil
+      end
+    end
+    def tagname
+      extract_taginfo
+      @tagname
+    end
+    def each_element(name=nil)
+      yield self if name == nil || self.tagname == name
+    end
+    def text; '' end
+  end
+  class IgnoredETag
+    include Leaf
+    def each_element(name=nil) end
+    def text; '' end
+  end
+  class Text
+    include Leaf
+    def each_element(name=nil) end
+    QuoteHash = { '<'=>'&lt;', '>'=> '&gt;' }
+    def text
+      return @text if defined? @text
+      @text = ''
+      @text = HTree.fix_character_reference(@str).gsub(/[<>]/) { QuoteHash[$&] }
+    end
+  end
+
+  NamedCharacters = %w[
+    nbsp iexcl cent pound curren yen brvbar sect uml copy ordf
+    laquo not shy reg macr deg plusmn sup2 sup3 acute micro
+    para middot cedil sup1 ordm raquo frac14 frac12 frac34 iquest
+    Agrave Aacute Acirc Atilde Auml Aring AElig Ccedil
+    Egrave Eacute Ecirc Euml Igrave Iacute Icirc Iuml ETH Ntilde
+    Ograve Oacute Ocirc Otilde Ouml times Oslash
+    Ugrave Uacute Ucirc Uuml Yacute THORN
+    szlig agrave aacute acirc atilde auml aring aelig ccedil
+    egrave eacute ecirc euml igrave iacute icirc iuml eth ntilde
+    ograve oacute ocirc otilde ouml divide oslash
+    ugrave uacute ucirc uuml yacute thorn yuml
+    quot amp lt gt
+    OElig oelig Scaron scaron Yuml circ tilde ensp emsp thinsp
+    zwnj zwj lrm rlm ndash mdash
+    lsquo rsquo sbquo ldquo rdquo bdquo dagger Dagger permil
+    lsaquo rsaquo euro fnof
+    Alpha Beta Gamma Delta Epsilon Zeta Eta Theta Iota Kappa Lambda
+    Mu Nu Xi Omicron Pi Rho Sigma Tau Upsilon Phi Chi Psi Omega
+    alpha beta gamma delta epsilon zeta eta theta iota kappa lambda
+    mu nu xi omicron pi rho sigmaf sigma tau upsilon phi chi psi omega
+    thetasym upsih piv bull hellip prime Prime oline frasl
+    weierp image real trade alefsym
+    larr uarr rarr darr harr crarr lArr uArr rArr dArr hArr
+    forall part exist empty nabla isin notin ni prod sum minus
+    lowast radic prop infin ang and or cap cup int there4 sim
+    cong asymp ne equiv le ge sub sup nsub sube supe
+    oplus otimes perp sdot lceil rceil lfloor rfloor lang rang
+    loz spades clubs hearts diams
+  ]
+  Pat::NamedCharacters = /\A#{Regexp.alt *NamedCharacters}\z/
+
+  def HTree.fix_character_reference(str)
+    str.gsub(/&(?:(?:#[0-9]+|#x[0-9a-fA-F]+|([A-Za-z][A-Za-z0-9]*));?)?/o) {|s|
+      name = $1
+      case s
+      when /;\z/
+        s
+      when /\A&#/
+        "#{s};"
+      when '&'
+        '&amp;'
+      else
+        if Pat::NamedCharacters =~ name
+          "&#{name};"
+        else
+          "&amp;#{name}"
+        end
+      end
+    }
+  end
 
   def HTree.scan(str)
     text = nil
-    str.scan(%r{(#{Pat::DocType})|(#{Pat::ProcIns})|(#{Pat::StartTag})|(#{Pat::EndTag})|(#{Pat::EmptyTag})|(#{Pat::Comment})|[^<>]+|[<>]}) {
+    str.scan(%r{(#{Pat::DocType})|(#{Pat::ProcIns})|(#{Pat::StartTag})|(#{Pat::EndTag})|(#{Pat::EmptyTag})|(#{Pat::Comment})|[^<>]+|[<>]}o) {
       if $+
         if text
           yield Fragment.new(text, :text)
