@@ -338,6 +338,20 @@ class Entry
     return if log['extractedTitle'] && log['extractedAuthor']
 
     lirs = LIRS.decode(decoded_content)
+
+    if $VERBOSE
+      lirs.each {|record|
+        if record.last_modified != '0' &&
+           record.last_detected != '0' &&
+           record.last_modified.to_i > record.last_detected.to_i
+          STDERR.puts "#{Time.now.iso8601} info: LIRS Last-Modified(#{Time.at(record.last_modified.to_i).iso8601}) is #{record.last_modified.to_i - record.last_detected.to_i}sec more future than Last-Modified-Detected(#{Time.at(record.last_detected.to_i).iso8601}). (#{record.last_modified},#{record.last_detected}) #{uri}"
+        end
+        if record.last_modified != '0' && record.last_modified.to_i > Time.now.to_i
+          STDERR.puts "#{Time.now.iso8601} info: LIRS Last-Modified(#{Time.at(record.last_modified.to_i).iso8601}) is future. (#{record.last_modified}) #{uri}"
+        end
+      }
+    end
+
     return if lirs.size != 1
     
     lirs.each {|record|
@@ -351,6 +365,7 @@ class Entry
     }
   rescue LIRS::Error
     # ignore invalid lirs file.
+    STDERR.puts "#{Time.now.iso8601} LIRS Error: #{uri}" if $VERBOSE
   end
 
   def path2pattern(*paths)
