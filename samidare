@@ -237,11 +237,12 @@ class Entry
       else
         ignore_path = []
       end
+      ignore_pattern = path2pattern(*ignore_path)
       t = t.filter_with_path {|e, path|
         not ( 
           (HTree::Elem === e && (e.tagname == 'style' ||
                                  e.tagname == 'script')) ||
-          ignore_path.include?(path)
+          ignore_pattern =~ path
         )
       }
       log['checksum_filtered'] = t.rcdata.sum
@@ -256,6 +257,18 @@ class Entry
         check_html(log)
       end
     end
+  end
+
+  def path2pattern(*paths)
+    Regexp.alt *paths.map {|path|
+      Regexp.new(path.gsub(%r{[^/]+}) {|step|
+        if /\[\d+\]\z/ =~ step
+          Regexp.quote(step)
+        else
+          Regexp.quote(step) + '(\[\d+\])?'
+        end
+      })
+    }
   end
 
   def decode_content_encoding(page, log)
