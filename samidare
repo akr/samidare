@@ -53,6 +53,7 @@ class Entry
     result = []
     result << @config['URI']
     result << @config['LinkURI'] if @config['LinkURI']
+    result.concat @config['RelatedURI'].split(/\s+/) if @config['RelatedURI']
     # @status['_log'][...]['baseURI'] ?
     result
   end
@@ -63,9 +64,8 @@ class Entry
 
   def should_check?
     ARGV.empty? or
-    ARGV.include?(@config['URI']) or
-    @config['LinkURI'] && ARGV.include?(@config['LinkURI']) or
-    @status['_update_info']
+    @status['_update_info'] or
+    !(related_uris & ARGV).empty?
   end
 
   DefaultMinimumInterval = 5 * 60
@@ -855,15 +855,14 @@ class Samidare
     }
   end
 
-  def dump_status(status)
+  def dump_status(status, entries)
     if ARGV.empty?
       status.each {|ent|
         pp ent
       }
     else
-      status.each {|ent|
-        c = @configuration[ent['URI']]
-        pp ent if ARGV.include?(ent['URI']) || (c && ARGV.include?(c['LinkURI']))
+      entries.each {|ent|
+        pp ent.status unless (ARGV & ent.related_uris).empty?
       }
     end
   end
@@ -899,70 +898,68 @@ class Samidare
     data = nil
     readonly = @opt_timing || @opt_dont_check || @opt_dump_status || @opt_dump_template_data
     open_status(readonly) {|status|
+      entries = create_entries(config, status, readonly)
       if @opt_dump_status
-        dump_status(status)
+        dump_status(status, entries)
+      elsif @opt_timing
+        entries = entries.map {|entry|
+          [entry.next_timing.localtime, entry]
+        }.sort
+        now = Time.now
+        entries.each {|timing, entry|
+          if now && timing > now
+            puts "#{now}  --- now ---"
+            now = nil
+          end
+          h = entry.presentation_data
+          s = "#{timing}: #{h['title']}"
+          s << " (#{h['Author']})" if h['Author']
+          puts s
+        }
+      elsif @opt_remove_entry
+        removing_uris = {}
+        entries.each {|e|
+          unless (e.related_uris & ARGV).empty? || e.status['_log'].empty?
+            removing_uris[e.uri] = true
+          end
+        }
+        status.reject! {|log|
+          uri = log['URI']
+          if removing_uris[uri]
+            STDERR.puts "removed: #{uri}" if $VERBOSE
+            true
+          else
+            false
+          end
+        }
       else
-        entries = create_entries(config, status, readonly)
-        if @opt_timing
-          entries = entries.map {|entry|
-            [entry.next_timing.localtime, entry]
-          }.sort
-          now = Time.now
-          entries.each {|timing, entry|
-            if now && timing > now
-              puts "#{now}  --- now ---"
-              now = nil
-            end
-            h = entry.presentation_data
-            s = "#{timing}: #{h['title']}"
-            s << " (#{h['Author']})" if h['Author']
-            puts s
+        unless readonly
+          entries.concurrent_map {|entry|
+            next unless entry.update_info?
+            entry.check if entry.should_check? && (@opt_force_check || entry.timing_check)
           }
-        elsif @opt_remove_entry
-          removing_uris = {}
-          entries.each {|e|
-            unless (e.related_uris & ARGV).empty? || e.status['_log'].empty?
-              removing_uris[e.uri] = true
-            end
+          entries.concurrent_map {|entry|
+            next if entry.update_info?
+            entry.check if entry.should_check? && (@opt_force_check || entry.timing_check)
           }
-          status.reject! {|log|
-            uri = log['URI']
-            if removing_uris[uri]
-              STDERR.puts "removed: #{uri}" if $VERBOSE
-              true
-            else
-              false
-            end
-          }
-        else
-          unless readonly
-            entries.concurrent_map {|entry|
-              next unless entry.update_info?
-              entry.check if entry.should_check? && (@opt_force_check || entry.timing_check)
-            }
-            entries.concurrent_map {|entry|
-              next if entry.update_info?
-              entry.check if entry.should_check? && (@opt_force_check || entry.timing_check)
-            }
-          end
-          entries.reject! {|entry| entry.update_info? }
-          data = {
-            "antenna" =>
-            entries.map {|entry| entry.presentation_data }.sort_by {|h|
-              # [h['last-modified'], h['title']]
-              if h['last-modified-found']
-                [1, h['last-modified-found'], h['last-modified'], h['title']]
-              else
-                [0, h['last-modified'], h['title']]
-              end
-            }.reverse
-          }
-          if @opt_dump_template_data
-            pp data
-            return
-          end
-          generate_output(data)
         end
+        entries.reject! {|entry| entry.update_info? }
+        data = {
+          "antenna" =>
+          entries.map {|entry| entry.presentation_data }.sort_by {|h|
+            # [h['last-modified'], h['title']]
+            if h['last-modified-found']
+              [1, h['last-modified-found'], h['last-modified'], h['title']]
+            else
+              [0, h['last-modified'], h['title']]
+            end
+          }.reverse
+        }
+        if @opt_dump_template_data
+          pp data
+          return
+        end
+        generate_output(data)
       end
     }
     #PP.pp(data, STDERR) if $VERBOSE
