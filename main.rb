@@ -321,9 +321,10 @@ class Entry
       if link = t.find_element('link',
                                '{http://purl.org/rss/1.0/}link',
                                '{http://my.netscape.com/rdf/simple/0.9/}link')
-        link_uri = link.extract_text.to_s.strip
-        if %r{\Ahttp://} =~ link_uri
-          log['extractedLinkURI'] = link_uri
+        base_uri = URI.parse(log['baseURI'] || @config['URI'])
+        link_uri = base_uri + link.extract_text.to_s.strip
+        if link_uri.scheme == 'http'
+          log['extractedLinkURI'] = link_uri.to_s
         end
       end
     end
