@@ -1,3 +1,16 @@
+-
+  - UpdateInfo: lirs
+    Periodical: true
+  - http://marimo.deisui.org/fm.lirs.gz
+  - http://a.northeye.net/natsumican.lirs.gz
+  - http://www.shudo.net/antenna/natsumican.lirs.gz
+
+-
+  - UpdateInfo: html
+    Periodical: true
+  - URI: http://www.jin.gr.jp/~nahi/link-ruby-temp.html
+    UpdateElement: tr
+
 - URI: http://lambda.weblogs.com/xml/rss.xml
   LinkURI: http://lambda.weblogs.com/
   Title: Lambda the Ultimate
@@ -8,11 +21,13 @@
   Title: Mu Antenna
 - http://www.usability.gr.jp/alertbox/
 - http://www.usability.gr.jp/lecture/index.html
-- URI: http://njb.virtualave.net/nmain.html
-  ChecksumXPath: html/body/p
+- http://njb.virtualave.net/nmain.html
 - URI: http://www.jate.or.jp/jp/tanmatsu/
   Title: JATE tanmatsu list
 
-- DefaultCharset: Shift_JIS
-- http://pc2.2ch.net/test/read.cgi/tech/1042004759/l50
-- http://pc.2ch.net/test/read.cgi/unix/1045705000/l50
+- http://www.rubyist.net/~matz/
+
+-
+  - DefaultCharset: Shift_JIS
+  - http://pc2.2ch.net/test/read.cgi/tech/1042004759/l50
+  - http://pc.2ch.net/test/read.cgi/unix/1045705000/l50
