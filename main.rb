@@ -359,6 +359,7 @@ class Entry
 
     t = tree.make_loc.filter {|e|
       path = e.path.sub(%r{^doc\(\)}, '')
+      e = e.to_node
       not (
         (HTree::Elem === e && (%r[\A(?:\{http://www.w3.org/1999/xhtml\})?style\z] =~ e.name ||
                                %r[\A(?:\{http://www.w3.org/1999/xhtml\})?script\z] =~ e.name)) ||
@@ -900,12 +901,14 @@ class Entry
     text1 = []
     tree1.make_loc.traverse_element {|n|
       path = n.path.sub(%r{^doc\(\)}, '')
+      n = n.to_node
       text1 << [n.to_s, path] if HTree::Text === n
     }
 
     text2 = []
     tree2.make_loc.traverse_element {|n|
       path = n.path.sub(%r{^doc\(\)}, '')
+      n = n.to_node
       text2 << [n.to_s, path] if HTree::Text === n
     }
 
