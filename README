@@ -45,8 +45,6 @@
   http://www.ruby-lang.org
 * htree (最新が前提です)
   http://cvs.m17n.org/cgi-bin/viewcvs/htree/?cvsroot=ruby
-* tempura-0.1.0
-  http://www.imasy.or.jp/~hisa/ruby/tempura/
 
 == 配布場所
 http://cvs.m17n.org/cgi-bin/viewcvs/samidare/?cvsroot=ruby
