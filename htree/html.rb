@@ -1,4 +1,4 @@
-require 'htree/util'
+require 'htree/regexp-util'
 
 module HTree
   module Pat
