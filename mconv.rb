@@ -97,21 +97,21 @@ module Mconv
   end
 
   def Mconv.minimize_charset(charset, string)
+    # shortcut
     if /\A(?:euc-jp|utf-8|iso-8859-1)\z/i =~ charset
       if /\A[\x00-\x7f]*\z/ =~ string
-        charset = 'us-ascii'
+        return 'us-ascii'
+      else
+        return charset
       end
-      return charset
     end
 
+    charset2 = 'us-ascii'
     begin
       # round trip?
-      s2 = Iconv.conv(charset, 'us-ascii', Iconv.conv('us-ascii', charset, string))
+      s2 = Iconv.conv(charset, charset2, Iconv.conv(charset2, charset, string))
+      return charset2 if string == s2
     rescue Iconv::Failure
-      return charset
-    end
-    if string == s2
-      charset = 'us-ascii'
     end
     charset
   end
