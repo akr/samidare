@@ -746,12 +746,18 @@ class Webpecker
       end
       entries = create_entries(config, status, readonly)
       if @opt_timing
-        entries.map {|entry|
+        entries = entries.map {|entry|
           [entry.next_timing.localtime, entry]
-        }.sort.each {|timing, entry|
+        }.sort
+        now = Time.now
+        entries.each {|timing, entry|
+          if now && timing > now
+            puts "#{now}  --- now ---"
+            now = nil
+          end
           h = entry.presentation_data
           s = "#{timing}: #{h['title']}"
-          s << "(#{h['Author']})" if h['Author']
+          s << " (#{h['Author']})" if h['Author']
           puts s
         }
       else
