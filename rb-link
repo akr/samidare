@@ -34,7 +34,7 @@ def expand_require(out, filename, dirs, main, included={})
 	    out.print "#", line
 	    filename = dir + "#{req}.rb"
 	    included[req] = filename
-	    endmark = 'End_' + [req].pack("m*").delete("\n")
+            #endmark = 'End_' + [req].pack("m*").delete("\n")
 	    #out.print "eval <<'#{endmark}', TOPLEVEL_BINDING, #{"[#{filename}]".dump}, #{out.output_line+1}\n"
 	    expand_require(out, filename, dirs, false, included)
 	    #out.print "#{endmark}\n"
