@@ -260,7 +260,7 @@ class Entry
   end
 
   def examine_html(content_type, decoded_content, log)
-    return if %r{\A(?:text/html|text/xml)\z} !~ content_type
+    return if %r{\A(?:text/html|text/xml|application/xml)\z} !~ content_type
 
     t = HTree.parse(decoded_content)
 
