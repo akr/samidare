@@ -215,7 +215,7 @@ class Entry
       l2 = LIRS.decode(new_lirs)
       l2.each {|r2|
         uri = r2.target_url
-        if !old_lirs or (r2 = l2[uri] and r1.last_modified != r2.last_modified)
+        if !old_lirs or (r1 = l1[uri] and r1.last_modified != r2.last_modified)
           if e = ENTRIES[uri]
             t1 = Time.at(r1.last_modified.to_i) if old_lirs
             t2 = Time.at(r2.last_modified.to_i)
