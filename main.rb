@@ -502,7 +502,6 @@ class Entry
   def extract_html_update_info_rec(elt, result, base_uri_cell)
     hrefs = []
 
-    p elt.name if HTree::Elem === elt
     if HTree::Elem === elt && %r[\A(?:\{http://www.w3.org/1999/xhtml\})?base\z] =~ elt.name
       if href = elt.get_attr('href')
         base_uri_cell[0] = URI.parse(href)
