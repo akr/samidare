@@ -1,0 +1,14 @@
+- URI: http://lambda.weblogs.com/xml/rss.xml
+  LinkURI: http://lambda.weblogs.com/
+  Title: Lambda the Ultimate
+- http://www.pythonware.com/daily/
+- http://blog.cnetnetworks.jp/lessig/
+- URI: http://ukai.org/mu/mu.rdf
+  LinkURI: http://ukai.org/mu/
+  Title: Mu Antenna
+- http://www.usability.gr.jp/alertbox/
+- http://www.usability.gr.jp/lecture/index.html
+- URI: http://njb.virtualave.net/nmain.html
+  ChecksumXPath: html/body/p
+- URI: http://www.jate.or.jp/jp/tanmatsu/
+  Title: JATE tanmatsu list
