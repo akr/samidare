@@ -189,7 +189,11 @@ class Entry
         while !content_encoding.empty?
           case content_encoding.last
           when 'gzip', 'x-gzip'
-            content = content.decode_gzip
+            begin
+              content = content.decode_gzip
+            rescue Zlib::BufError
+              break
+            end
           when 'deflate'
             content = content.decode_deflate
           else
@@ -202,9 +206,10 @@ class Entry
       end
       if content_type == 'text/html' && !content_encoding
         t = Tidy.parse_string(content, :encoding=>content_charset).head.children.find {|n| n.title? && !n.children.empty? && !n.children[0].text.empty? }.children[0]
-        h['extractedTitle'] = t.text.chomp.decode_charset(content_charset).decode_html_escape.gsub(/\0/, '') if t
+        t = t.text.chomp.decode_charset(content_charset) if t
+        h['extractedTitle'] = t.decode_html_escape.gsub(/\0/, '') if t
         if @config['ChecksumXPath']
-          t = Iconv.iconv("utf-8", content_charset, content).join
+          t = Iconv.iconv("utf-8", content_charset, content).join #xxx: exception?
           t = Tidy.parse_string(t, "output-xml"=>true, :encoding=>"UTF-8").dump
           t.gsub!(%r{<\n\/}, '</')
           begin
@@ -542,7 +547,7 @@ class Iconv
       Iconv.iconv(to, from, str).join
     rescue Iconv::IllegalSequence
       p [:IllegalSequence, str]
-      ""
+      nil
     end
   end
 end
