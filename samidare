@@ -425,14 +425,14 @@ class Entry
 
     (old_info.keys & new_info.keys).each {|uri|
       count_interest += 1
-      if old_info[uri].map {|elt| elt.raw_string }.join !=
-         new_info[uri].map {|elt| elt.raw_string }.join
+      old_str = old_info[uri].map {|elt| elt.text }.join
+      new_str = new_info[uri].map {|elt| elt.text }.join
+      if old_str != new_str
         #pp [uri, old_info[uri]]
         #pp [uri, new_info[uri]]
         count_update += 1
-        ENTRIES[uri].each {|e|
-          yield e.uri
-        }
+        p [:HTML_UPDATE, uri, old_str, new_str, @config['URI']]
+        yield uri
       end
     }
 
@@ -449,7 +449,6 @@ class Entry
       end
       extract_html_update_info(old_log, new_log) {|uri|
         ENTRIES[uri].each {|e|
-          p [:HTML_UPDATE, e.uri, @config['URI']]
           e.status['_update_info'] = true
         }
       }
