@@ -158,7 +158,11 @@ module HTree
       if ElementContent[tagname] == :EMPTY
         return Elem.new(elem.stag), elem.elts
       else
-        possible_tags = ElementContent[tagname]
+        if ElementContent[tagname] == :CDATA
+          possible_tags = []
+        else
+          possible_tags = ElementContent[tagname]
+        end
         excluded_tags2 = ElementExclusions[tagname] || []
         included_tags2 = ElementInclusions[tagname] || []
         possible_tags = possible_sibling_tags unless possible_tags
