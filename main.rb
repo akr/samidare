@@ -305,7 +305,7 @@ class Entry
     author = t.author
     log['extractedAuthor'] = author if author
 
-    t.traverse_element("meta") {|e|
+    t.traverse_element('meta', '{http://www.w3.org/1999/xhtml}meta') {|e|
       begin
         next unless e.fetch_attr("http-equiv").downcase == "last-modified"
         log['extractedLastModified'] = Time.httpdate_robust(e.fetch_attr("content"))
@@ -314,9 +314,13 @@ class Entry
       end
     }
 
-    root = t.root rescue nil
-    if root and root.name == 'rss' || root.name == '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}RDF'
-      if link = t.find_element('link')
+    root = (t.root rescue nil)
+    if root and
+       root.name == 'rss' ||
+       root.name == '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}RDF'
+      if link = t.find_element('link',
+                               '{http://purl.org/rss/1.0/}link',
+                               '{http://my.netscape.com/rdf/simple/0.9/}link')
         link_uri = link.extract_text.to_s.strip
         if %r{\Ahttp://} =~ link_uri
           log['extractedLinkURI'] = link_uri
@@ -351,8 +355,8 @@ class Entry
 
     t = tree.filter_with_path {|e, path|
       not (
-        (HTree::Elem === e && (e.name == 'style' ||
-                               e.name == 'script')) ||
+        (HTree::Elem === e && (%r[\A(?:\{http://www.w3.org/1999/xhtml\})?style\z] =~ e.name ||
+                               %r[\A(?:\{http://www.w3.org/1999/xhtml\})?script\z] =~ e.name)) ||
         ignore_pattern =~ path ||
         (HTree::Elem === e && (ignore_class.include?(e.get_attr('class')) ||
                                ignore_id.include?(e.get_attr('id'))))
@@ -523,7 +527,7 @@ class Entry
 
     hrefs.uniq!
 
-    if HTree::Elem === elt && elt.name == @config.fetch('UpdateElement', 'a')
+    if HTree::Elem === elt && @config.fetch('UpdateElement', %r[\A(?:\{http://www.w3.org/1999/xhtml\})?a\z]) === elt.name
       hrefs.each {|uri|
         result[uri] ||= []
         result[uri] << elt
