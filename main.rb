@@ -341,13 +341,14 @@ class Entry
 
     if $VERBOSE
       lirs.each {|record|
+        now = Time.now
         if record.last_modified != '0' &&
            record.last_detected != '0' &&
            record.last_modified.to_i > record.last_detected.to_i
-          STDERR.puts "#{Time.now.iso8601} info: LIRS Last-Modified(#{Time.at(record.last_modified.to_i).iso8601}) is #{record.last_modified.to_i - record.last_detected.to_i}sec more future than Last-Modified-Detected(#{Time.at(record.last_detected.to_i).iso8601}). (#{record.last_modified},#{record.last_detected}) #{uri}"
+          STDERR.puts "#{now.iso8601} info: strange LIRS: Last-Modified(#{Time.at(record.last_modified.to_i).iso8601}) is #{record.last_modified.to_i - record.last_detected.to_i}sec more future than Last-Modified-Detected(#{Time.at(record.last_detected.to_i).iso8601}). (#{record.last_modified},#{record.last_detected}) #{uri} #{record.encode.inspect}"
         end
-        if record.last_modified != '0' && record.last_modified.to_i > Time.now.to_i
-          STDERR.puts "#{Time.now.iso8601} info: LIRS Last-Modified(#{Time.at(record.last_modified.to_i).iso8601}) is future. (#{record.last_modified}) #{uri}"
+        if record.last_modified != '0' && record.last_modified.to_i > now.to_i
+          STDERR.puts "#{now.iso8601} info: strange LIRS: Last-Modified(#{Time.at(record.last_modified.to_i).iso8601}) is #{record.last_modified.to_i - now.to_i}sec future. (#{record.last_modified}) #{uri} #{record.encode.inspect}"
         end
       }
     end
