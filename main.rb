@@ -363,12 +363,20 @@ class Entry
       ignore_id = []
     end
 
+    if ignore_element = config['IgnoreElement']
+      ignore_element = ignore_element.split(/\s+/)
+    else
+      ignore_element = []
+    end
+
     t = tree.make_loc.filter {|e|
       path = e.path.sub(%r{^doc\(\)}, '')
       e = e.to_node
       not (
+        (e.text? && /\A\s*\z/ =~ e.to_s) ||
         (e.elem? && (%r[\A(?:\{http://www.w3.org/1999/xhtml\})?style\z] =~ e.name ||
-                     %r[\A(?:\{http://www.w3.org/1999/xhtml\})?script\z] =~ e.name)) ||
+                     %r[\A(?:\{http://www.w3.org/1999/xhtml\})?script\z] =~ e.name ||
+                     ignore_element.include?(e.name))) ||
         ignore_pattern =~ path ||
         (e.elem? && ((cs = e.get_attr('class') and ignore_class & cs.split(/\s+/) != []) ||
                      ignore_id.include?(e.get_attr('id'))))
@@ -380,6 +388,7 @@ class Entry
     checksum_filter.concat ['IgnorePath', *ignore_path] if !ignore_path.empty?
     checksum_filter.concat ['IgnoreClass', *ignore_class] if !ignore_class.empty?
     checksum_filter.concat ['IgnoreID', *ignore_id] if !ignore_id.empty?
+    checksum_filter.concat ['IgnoreElement', *ignore_element] if !ignore_element.empty?
 
     [t, checksum_filter]
   end
