@@ -276,6 +276,15 @@ class Entry
     author = t.author
     log['extractedAuthor'] = author if author
 
+    t.traverse_element("meta") {|e|
+      begin
+        next unless e.stag.fetch_attribute_text("http-equiv").downcase == "last-modified"
+        log['extractedLastModified'] = Time.httpdate_robust(e.stag.fetch_attribute_text("content"))
+        break
+      rescue IndexError, ArgumentError
+      end
+    }
+
     if ignore_path = @config['IgnorePath']
       ignore_path = ignore_path.split(/\s+/)
     else
@@ -692,6 +701,8 @@ class Entry
               h['info'] << '[NoIMS]'
             end
           end
+        elsif l.include? 'extractedLastModified'
+          h['last-modified'] = l['extractedLastModified'].getlocal.iso8601
         else
           h['last-modified'] = l['clientDateBeg'].getlocal.iso8601
           h['info'] << '[NoLM]'
