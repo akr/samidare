@@ -209,23 +209,43 @@ class Entry
         break
       end
     }
-    return unless old_lirs
-
     log.each {|h| h.delete 'content' }
-
-    begin
-      l1 = LIRS.decode(old_lirs)
-      l2 = LIRS.decode(new_lirs)
-      l1.each {|r1|
-        uri = r1.target_url
-        if r2 = l2[uri] and r1.last_modified != r2.last_modified
-          p [:LIRS_UPDATE, uri, Time.at(r1.last_modified.to_i), Time.at(r2.last_modified.to_i)]
-          ENTRIES[uri].hash['_update_info'] = true if ENTRIES[uri]
-        end
-      }
-    rescue
-      # External update information is a just hint.
-      # So it is ignorable even if it has some trouble.
+    if old_lirs
+      begin
+        l1 = LIRS.decode(old_lirs)
+        l2 = LIRS.decode(new_lirs)
+        l1.each {|r1|
+          uri = r1.target_url
+          if r2 = l2[uri] and r1.last_modified != r2.last_modified
+            if e = ENTRIES[uri]
+              t1 = Time.at(r1.last_modified.to_i)
+              t2 = Time.at(r2.last_modified.to_i)
+              if e.find_last_success['clientDateEnd'] < t2 #xxx: not so acculate.
+                p [:LIRS_UPDATE, @config['URI'], uri, t1, t2]
+                ENTRIES[uri].hash['_update_info'] = true
+              end
+            end
+          end
+        }
+      rescue
+        # External update information is a just hint.
+        # So it is ignorable even if it has some trouble.
+      end
+    else
+      begin
+        l1 = LIRS.decode(new_lirs)
+        l1.each {|r1|
+          uri = r1.target_url
+          if e = ENTRIES[uri]
+            t1 = Time.at(r1.last_modified.to_i)
+            if e.find_last_success['clientDateEnd'] < t1 #xxx: not so acculate.
+              p [:LIRS_UPDATE, @config['URI'], uri, t1]
+              ENTRIES[uri].hash['_update_info'] = true
+            end
+          end
+        }
+      rescue
+      end
     end
   end
 
