@@ -6,7 +6,6 @@ require 'xtemplate'
 require 'open-uri'
 require 'uri'
 require 'time'
-require 'resolv-replace'
 require 'yaml'
 require 'mconv'
 require 'timeout'
@@ -867,6 +866,7 @@ class Samidare
       q.def_option('--single-thread', 'diable multi-threading') { $opt_max_threads = 1 }
       q.parse!
     }
+    require 'resolv-replace' if $opt_max_threads != 1
   end
 
   def dump_status(status, entries)
