@@ -243,7 +243,9 @@ class Entry
     log['content'] = AutoFile.new(uri, content, content_type)
 
     #xxx: content.guess_charset is not valid if content_encoding is non-nil
-    content_charset = page.charset { @config['DefaultCharset'] || content.guess_charset }
+    content_charset = @config.fetch('ForceCharset') {
+      page.charset { @config['DefaultCharset'] || content.guess_charset }
+    }
     content_charset = content_charset.downcase
     log['contentCharset'] = content_charset
 
