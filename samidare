@@ -283,8 +283,13 @@ class Entry
   def path2pattern(*paths)
     /\A#{Regexp.alt *paths.map {|path|
       Regexp.new(path.gsub(%r{[^/]+}) {|step|
-        if /\[\d+\]\z/ =~ step
-          Regexp.quote(step)
+        if /\[(\d+)\]\z/ =~ step
+          n = $1.to_i
+          if $1.to_i == 1
+            "(?:\[#{n}\])?"
+          else
+            "\[#{n}\]"
+          end
         else
           Regexp.quote(step) + '(\[\d+\])?'
         end
