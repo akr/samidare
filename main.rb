@@ -130,15 +130,21 @@ class Entry
       end
       if !s1t
         begin
-          s1t = Time.httpdate_robust(s1['lastModifiedString']) +
-            ((s1['clientDateEnd'] || s1['clientDateBeg']) - Time.httpdate_robust(s1['serverDateString']))
+          s1_client_date = s1['clientDateEnd'] || s1['clientDateBeg']
+          s1_server_date = Time.httpdate_robust(s1['serverDateString'])
+          s1t = Time.httpdate_robust(s1['lastModifiedString'])
+          s1t += s1_client_date - s1_server_date
         rescue
           s1t = s1['clientDateEnd'] || s1['clientDateBeg']
         end
         s1t = s2t if s2t < s1t
       end
 
-      r = s2t + (s2t - s1t)
+      begin
+        r = s2t + (s2t - s1t)
+      rescue RangeError
+        r = s2t + max
+      end
       if r < s2t + min
         s2t + min
       elsif s2t + max < r
