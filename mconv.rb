@@ -95,6 +95,7 @@ module Mconv
     max = count.values.max
     count.reject! {|k, v| v != max }
     return count.keys if count.size == 1
+    return ['us-ascii'] if count['us-ascii']
     
     # xxx: needs more accurate guess
     Preference.reject {|name| !count[name] }
