@@ -17,12 +17,15 @@ require 'optparse'
 require 'rexml/document'
 require 'zlib'
 require 'lirs'
+require 'autofile'
 
 CONFIG_FILENAME = 'config.yml'
 STATUS_FILENAME = 'status.rm'
 
 TEMPLATE_LATEST_FILENAME = 't.latest.html'
 OUTPUT_LATEST_FILENAME = 'latest.html'
+
+AutoFile.directory = 'tmp' # xxx: should be configurable.
 
 def Time.httpdate_robust(str)
   Time.httpdate(str) rescue Time.parse(str)
@@ -229,18 +232,15 @@ class Entry
       end
       h['checksum'] = content.sum unless h['checksum']
 
+      h['content'] = AutoFile.new(uri, content, content_type)
       if !content_encoding
         case @config['UpdateInfo']
         when 'lirs'
-          h['content'] = String.new(content)
           check_lirs(content)
         when 'html'
-          h['content'] = String.new(content)
           check_html(h)
         end
       end
-
-      log.each {|l| l.delete 'content' }
     end
 
     h['trouble'] = trouble if trouble
@@ -257,7 +257,7 @@ class Entry
     old_lirs = nil
     log.reverse_each {|h|
       if h['content']
-        old_lirs = h['content']
+        old_lirs = h['content'].content
         break
       end
     }
@@ -316,7 +316,7 @@ class Entry
   end
 
   def extract_html_check_key(log)
-    content = log['content']
+    content = log['content'].content
     return {} unless content
 
     entry_xpath = @config.fetch("UpdateEntry", "//a")
@@ -648,7 +648,10 @@ class Webpecker
   #def load_status(f) YAML.load(f) end
   #def save_status(f, d) f.puts d.to_yaml end
   def load_status(f) Marshal.load(f) end
-  def save_status(d, f) Marshal.dump(d, f) end
+  def save_status(d, f)
+    Marshal.dump(d, f)
+    AutoFile.clear
+  end
 
   def open_status(readonly=false)
     if readonly
