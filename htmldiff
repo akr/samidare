@@ -8,8 +8,13 @@ require 'tempfile'
 def path2pattern(*paths)
   /\A#{Regexp.alt *paths.map {|path|
     Regexp.new(path.gsub(%r{[^/]+}) {|step|
-      if /\[\d+\]\z/ =~ step
-        Regexp.quote(step)
+      if /\[(\d+)\]\z/ =~ step
+        n = $1.to_i
+        if $1.to_i == 1
+          Regexp.quote($`) + "(?:\\[#{n}\\])?"
+        else
+          Regexp.quote(step)
+        end
       else
         Regexp.quote(step) + '(\[\d+\])?'
       end
@@ -18,7 +23,6 @@ def path2pattern(*paths)
     })
   }}\z/
 end
-
 
 filename1, filename2, *ignore_path = ARGV
 
