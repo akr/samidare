@@ -405,27 +405,22 @@ class Entry
     end
   end
 
-  def extract_html_update_info(old_log, new_log)
-    return unless old_log && old_log['content'] && old_log['contentCharset'] &&
-                  new_log && new_log['content'] && new_log['contentCharset']
+  def extract_html_update_info(log)
+    return {} unless log && log['content'] && log['contentCharset']
+    content = log['content'].content
+    content = content.decode_charset(log['contentCharset'])
+    tree = HTree.parse(content)
+    base_uri = URI.parse(log['baseURI'] || log['URI'])
+    extract_html_update_info_rec(tree, info={}, [base_uri])
+    info
+  end
 
+  def compare_html_update_info(old_log, new_log)
     count_update = 0
     count_interest = 0
 
-    old_content = old_log['content'].content
-    new_content = new_log['content'].content
-
-    old_content = old_content.decode_charset(old_log['contentCharset'])
-    new_content = new_content.decode_charset(new_log['contentCharset'])
-
-    old_tree = HTree.parse(old_content)
-    new_tree = HTree.parse(new_content)
-
-    old_base_uri = URI.parse(old_log['baseURI'] || old_log['URI'])
-    new_base_uri = URI.parse(new_log['baseURI'] || new_log['URI'])
-
-    extract_html_update_info_rec(old_tree, old_info={}, [old_base_uri])
-    extract_html_update_info_rec(new_tree, new_info={}, [new_base_uri])
+    old_info = extract_html_update_info(old_log)
+    new_info = extract_html_update_info(new_log)
 
     (old_info.keys & new_info.keys).each {|uri|
       count_interest += 1
@@ -451,7 +446,7 @@ class Entry
         new_log = find_last_200
         old_log = find_last_200_with_previous_content
       end
-      extract_html_update_info(old_log, new_log) {|uri|
+      compare_html_update_info(old_log, new_log) {|uri|
         ENTRIES[uri].each {|e|
           e.status['_update_info'] = true
         }
@@ -981,6 +976,28 @@ class Samidare
   end
 
 end
+
+class Hash
+  def pretty_print(pp)
+    pp.group(1, '{', '}') {
+      keys = self.keys
+      keys.sort! if keys.all? {|k| String === k }
+      keys.each {|k|
+        v = self[k]
+        pp.comma_breakable unless pp.first?
+        pp.group {
+          pp.pp k
+          pp.text '=>'
+          pp.group(1) {
+            pp.breakable ''
+            pp.pp v
+          }
+        }
+      }
+    }
+  end
+end
+
 
 if $0 == __FILE__
   Samidare.new.main
