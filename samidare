@@ -39,11 +39,20 @@ class Entry
   def initialize(hash, config)
     @hash = hash
     @config = config
-    ENTRIES[@hash['URI']] = self
-    ENTRIES[@hash['LinkURI']] = self if @hash['LinkURI']
+    related_uris.each {|uri|
+      ENTRIES[uri] = self
+    }
   end
   attr_reader :hash
   attr_reader :config
+
+  def related_uris
+    result = []
+    result << @config['URI']
+    result << @config['LinkURI'] if @config['LinkURI']
+    # @hash['_log'][...]['baseURI'] ?
+    result
+  end
 
   def update_info?
     @config.include? 'UpdateInfo'
