@@ -235,6 +235,7 @@ class Entry
     content, content_encoding = decode_content_encoding(page, log)
     log['content'] = AutoFile.new(uri, content, content_type)
 
+    #xxx: content.guess_charset is not valid if content_encoding is non-nil
     content_charset = page.charset { @config['DefaultCharset'] || content.guess_charset }
     content_charset = content_charset.downcase
     log['contentCharset'] = content_charset
@@ -243,40 +244,44 @@ class Entry
     # compression level is not affected.
     log['checksum'] = content.sum
 
-    if !content_encoding && %r{\A(?:text/html|text/xml)\z} =~ content_type
-      t = HTree.parse(content.decode_charset(content_charset))
+    return if content_encoding
 
-      title = t.title
-      log['extractedTitle'] = title if title
+    examine_html(content_type, content_charset, content, log)
 
-      author = t.author
-      log['extractedAuthor'] = author if author
-
-      if ignore_path = @config['IgnorePath']
-        ignore_path = ignore_path.split(/\s+/)
-      else
-        ignore_path = []
-      end
-      ignore_pattern = path2pattern(*ignore_path)
-      t = t.filter_with_path {|e, path|
-        not ( 
-          (HTree::Elem === e && (e.tagname == 'style' ||
-                                 e.tagname == 'script')) ||
-          ignore_pattern =~ path
-        )
-      }
-      log['checksum_filtered'] = t.rcdata.sum
-      log['checksum_filter'] = ['IgnorePath', *ignore_path] if !ignore_path.empty?
+    case @config['UpdateInfo']
+    when 'lirs'
+      check_lirs(content)
+    when 'html'
+      check_html(log)
     end
+  end
 
-    if !content_encoding
-      case @config['UpdateInfo']
-      when 'lirs'
-        check_lirs(content)
-      when 'html'
-        check_html(log)
-      end
+  def examine_html(content_type, content_charset, content, log)
+    return if %r{\A(?:text/html|text/xml)\z} !~ content_type
+
+    t = HTree.parse(content.decode_charset(content_charset))
+
+    title = t.title
+    log['extractedTitle'] = title if title
+
+    author = t.author
+    log['extractedAuthor'] = author if author
+
+    if ignore_path = @config['IgnorePath']
+      ignore_path = ignore_path.split(/\s+/)
+    else
+      ignore_path = []
     end
+    ignore_pattern = path2pattern(*ignore_path)
+    t = t.filter_with_path {|e, path|
+      not ( 
+        (HTree::Elem === e && (e.tagname == 'style' ||
+                               e.tagname == 'script')) ||
+        ignore_pattern =~ path
+      )
+    }
+    log['checksum_filtered'] = t.rcdata.sum
+    log['checksum_filter'] = ['IgnorePath', *ignore_path] if !ignore_path.empty?
   end
 
   def path2pattern(*paths)
