@@ -9,7 +9,7 @@ require 'time'
 require 'resolv-replace'
 require 'yaml'
 require 'tidy'
-require 'iconv'
+require 'mconv'
 require 'timeout'
 require 'net/http'
 require 'pp'
@@ -212,7 +212,7 @@ class Entry
         t = t.text.chomp.decode_charset(content_charset) if t
         h['extractedTitle'] = t.decode_html_escape.gsub(/\0/, '') if t
         if @config['ChecksumXPath']
-          t = Iconv.iconv("utf-8", content_charset, content).join #xxx: exception?
+          t = Mconv.conv(content, "utf-8", content_charset)
           t = Tidy.parse_string(t, "output-xml"=>true, :encoding=>"UTF-8").dump
           t.gsub!(%r{<\n\/}, '</')
           begin
@@ -298,7 +298,9 @@ class Entry
     }
     (new_check_key.keys & old_check_key.keys).each {|uri|
       if old_check_key[uri] != new_check_key[uri]
-        p [:HTML_UPDATE, uri, @config['URI']]
+        pp [:HTML_UPDATE, uri, @config['URI'],
+            "#{Mconv.conv(old_check_key[uri], Mconv.internal_mime_charset, 'UTF-8')}",
+            "#{Mconv.conv(new_check_key[uri], Mconv.internal_mime_charset, 'UTF-8')}"]
         updated_uris[uri] = true
       end
     }
@@ -315,19 +317,22 @@ class Entry
     check_xpath = @config.fetch("UpdateCheck", ".")
 
     uri_set = {}
-    t = Iconv.conv('UTF-8', log['contentCharset'], content)
+    t = Mconv.conv(content, 'UTF-8', log['contentCharset'])
     t = Tidy.parse_string(t, "output-xml"=>true, :encoding=>"UTF-8").dump
     t.gsub!(%r{<\n\/}, '</')
     doc = REXML::Document.new(t)
-    base_uri = nil || log['baseURI'] || log['URI'] # xxx: base URI が meta で書いてあれば使う
+    base_uri = URI.parse(log['baseURI'] || log['URI'])
+    if base_element = doc.get_elements("//base").first
+      base_uri = base_uri + URI.parse(base_element.attribute("href").to_s)
+    end
     doc.each_element(entry_xpath) {|entry|
       uris = []
       if entry.name == 'a'
-        uri = entry.attribute("href")
+        uri = (base_uri + URI.parse(entry.attribute("href").to_s)).to_s
         uris << uri if uri && ENTRIES.include?(uri)
       else
         entry.each_element(".//a") {|e|
-          uri = e.attribute("href").to_s
+          uri = (base_uri + URI.parse(entry.attribute("href").to_s)).to_s
           uris << uri if uri && ENTRIES.include?(uri)
         }
       end
@@ -534,54 +539,6 @@ module Enumerable
 end
 
 class String
-  def guess_charset
-    case self
-    when /\A[\s\x21-\x7e]*\z/
-      "us-ascii"
-    when /\A[\s\x21-\x7e]*                      (?# initial ascii )
-            (\e\(B[\s\x21-\x7e]*                (?# ascii )
-            |\e\(J[\s\x21-\x7e]*                (?# JIS X 0201 )
-            |\e\$@(?:[\x21-\x7e][\x21-\x7e])*   (?# JIS X 0201 )
-            |\e\$B(?:[\x21-\x7e][\x21-\x7e])*   (?# JIS X 0201 )
-            )*\z/nx
-      "iso-2022-jp"
-    when /\A[\s\x21-\x7e]*                      (?# initial ascii )
-            (\e\(B[\s\x21-\x7e]*                (?# ascii )
-            |\e\(J[\s\x21-\x7e]*                (?# JIS X 0201 latin )
-            |\e\(I[\s\x21-\x7e]*                (?# JIS X 0201 katakana )
-            |\e\$@(?:[\x21-\x7e][\x21-\x7e])*   (?# JIS X 0201 )
-            |\e\$B(?:[\x21-\x7e][\x21-\x7e])*   (?# JIS X 0201 )
-            )*\z/nx
-      "iso-2022-jp" # with katakana
-    when /\A(?:\s                               (?# white space character)
-            | [\x21-\x7e]                       (?# JIS X 0201 Latin)
-            | ([\xa1-\xdf])                     (?# JIS X 0201 Katakana)
-            | [\x81-\x9f\xe0-\xef][\x40-\x7e\x80-\xfc]      (?# JIS X 0208)
-            | ([\xf0-\xfc][\x40-\x7e\x80-\xfc]) (?# extended area)
-            )*\z/nx
-      "shift_jis"
-    when /\A(?:\s                               (?# white space character)
-            | [\x21-\x7e]                       (?# ASCII)
-            | [\xa1-\xfe][\xa1-\xfe]            (?# JIS X 0208)
-            | \x8e(?:([\xa1-\xdf])              (?# JIS X 0201 Katakana)
-                    |([\xe0-\xfe]))             (?# There is no character in E0 to FE)
-            | \x8f[\xa1-\xfe][\xa1-\xfe]        (?# JIS X 0212)
-            )*\z/nx
-      "euc-jp"
-    when /\A(?:\s
-            | [\x21-\x7e]
-            | [\xc0-\xdf][\x80-\xbf]
-            | [\xe0-\xef][\x80-\xbf][\x80-\xbf]
-            | [\xf0-\xf7][\x80-\xbf][\x80-\xbf][\x80-\xbf]
-            | [\xf8-\xfb][\x80-\xbf][\x80-\xbf][\x80-\xbf][\x80-\xbf]
-            | [\xfc-\xfd][\x80-\xbf][\x80-\xbf][\x80-\xbf][\x80-\xbf][\x80-\xbf]
-            )*\z/nx
-      "utf-8" # may be redundunt.
-    else
-      "iso-8859-1"
-    end
-  end
-
   HTMLDecodeEscape = {
     'amp' => '&',
     'lt' => '<',
@@ -598,38 +555,6 @@ class String
 
   def decode_deflate
     Zlib::Inflate.inflate(self)
-  end
-end
-
-class Iconv
-  def Iconv.internal_charset
-    case $KCODE
-    when /\Ae/i; 'euc-jp'
-    when /\As/i; 'shift_jis'
-    when /\Au/i; 'utf-8'
-    when /\An/i; 'iso-8859-1'
-    else
-      raise "unknown $KCODE: #{$KCODE.inspect}"
-    end
-  end
-
-  def Iconv.conv(to, from, str)
-    begin
-      Iconv.iconv(to, from, str).join
-    rescue Iconv::IllegalSequence
-      p [:IllegalSequence, str]
-      nil
-    end
-  end
-end
-
-class String
-  def decode_charset(charset)
-    Iconv.conv(Iconv.internal_charset, charset, self)
-  end
-
-  def encode_charset(charset)
-    Iconv.conv(charset, Iconv.internal_charset, self)
   end
 end
 
