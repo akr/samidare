@@ -976,9 +976,12 @@ end
 # This makes decoding &apos; safe.
 # [ruby-talk:74223]
 class REXML::Attribute
+  v = $VERBOSE
+  $VERBOSE = nil
   def to_string
     %Q<#@expanded_name="#{to_s().gsub(/"/, '&quot;')}">
   end
+  $VERBOSE = v
 end
 
 class Samidare
@@ -1363,6 +1366,8 @@ class Samidare
 end
 
 class Hash
+  v = $VERBOSE
+  $VERBOSE = nil
   def pretty_print(q)
     q.group(1, '{', '}') {
       keys = self.keys
@@ -1380,8 +1385,8 @@ class Hash
       }
     }
   end
+  $VERBOSE = v
 end
-
 
 if $0 == __FILE__
   Samidare.new.main
