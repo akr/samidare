@@ -80,7 +80,15 @@ class AutoFile
       ext = $&
     elsif /\ALIRS/i =~ initial_content
       ext = '.lirs'
-    elsif /<html|<title|<!DOCTYPE HTML/i =~ initial_content
+    elsif /<!DOCTYPE rss/i =~ initial_content
+      ext = '.rss'
+    elsif /<rdf:RDF/i =~ initial_content
+      ext = '.rdf'
+    elsif /<html|<!DOCTYPE HTML/i =~ initial_content
+      ext = '.html'
+    elsif /\A<\?xml/i =~ initial_content
+      ext = '.xml'
+    elsif /<title/i =~ initial_content
       ext = '.html'
     else
       ext = ''
