@@ -19,6 +19,7 @@ require 'zlib'
 require 'lirs'
 require 'autofile'
 require 'htree'
+require 'string-util'
 
 CONFIG_FILENAME = 'config.yml'
 STATUS_FILENAME = 'status.rm'
@@ -210,12 +211,13 @@ class Entry
     log['contentCharset'] = content_charset
 
     content, content_encoding = decode_content_encoding(page, log)
+    log['content'] = AutoFile.new(uri, content, content_type)
 
-    # checksum is calculated for gzip/deflate decoded content.
-    # So, compression level is not affected.
+    # checksum for gzip/deflate decoded content.
+    # compression level is not affected.
     log['checksum'] = content.sum
 
-    if content_type == 'text/html' && !content_encoding
+    if !content_encoding && content_type == 'text/html'
       t = HTree.parse(content.decode_charset(content_charset))
       log['extractedTitle'] = t.title
 
@@ -231,7 +233,6 @@ class Entry
       log['checksum_filter'] = ['IgnorePath', *ignore_path]
     end
 
-    log['content'] = AutoFile.new(uri, content, content_type)
     if !content_encoding
       case @config['UpdateInfo']
       when 'lirs'
@@ -595,26 +596,6 @@ module Enumerable
       threads.each {|t| t.join }
       arr
     end
-  end
-end
-
-class String
-  HTMLDecodeEscape = {
-    'amp' => '&',
-    'lt' => '<',
-    'gt' => '>',
-    'quot' => '"',
-  }
-  def decode_html_escape
-    self.gsub(/&(amp|lt|gt|quot);/) { HTMLDecodeEscape[$1] }
-  end
-
-  def decode_gzip
-    Zlib::GzipReader.new(StringIO.new(self)).read
-  end
-
-  def decode_deflate
-    Zlib::Inflate.inflate(self)
   end
 end
 
