@@ -54,6 +54,22 @@ module HTree
       }
     end
 
+    def fetch_attribute_text(name, *rest)
+      if 1 < rest.length
+        raise ArgumentError, "wrong number of arguments(#{1 + rest.length} for 2)"
+      end
+      each_attribute_text {|n, v|
+        return v if n == name
+      }
+      if block_given?
+        yield
+      elsif rest.length == 1
+        rest[0]
+      else
+        raise IndexError, "attribute not found: #{name.inspect}"
+      end
+    end
+
     def inspect; "<stag: #{@str.inspect}>" end
   end
 

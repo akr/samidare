@@ -219,19 +219,12 @@ class Entry
 
     if !content_encoding && %r{\A(?:text/html|text/xml)\z} =~ content_type
       t = HTree.parse(content.decode_charset(content_charset))
-      log['extractedTitle'] = t.title
 
-      t.traverse_element("meta") {|e|
-        begin
-          next unless e.stag.fetch_attribute_text("name").downcase == "author"
-          author = e.stag.fetch_attribute_text("content")
-          if !author.empty?
-            log['extractedAuthor'] = author
-            break
-          end
-        rescue IndexError
-        end
-      }
+      title = t.title
+      log['extractedTitle'] = title if title
+
+      author = t.author
+      log['extractedAuthor'] = author if author
 
       if ignore_path = @config['IgnorePath']
         ignore_path = ignore_path.split(/\s+/)

@@ -159,6 +159,28 @@ module HTree
       e && e.text
     end
 
+    def author
+      traverse_element("meta") {|e|
+        begin
+          next unless e.stag.fetch_attribute_text("name").downcase == "author"
+          author = e.stag.fetch_attribute_text("content")
+          return author if !author.empty?
+        rescue IndexError
+        end
+      }
+
+      traverse_element("link") {|e|
+        begin
+          next unless e.stag.fetch_attribute_text("rev").downcase == "made"
+          author = e.stag.fetch_attribute_text("title")
+          return author if !author.empty?
+        rescue IndexError
+        end
+      } 
+
+      nil
+    end
+
     def raw_string
       str = ''
       @elts.each {|elt| str << elt.raw_string }
