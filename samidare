@@ -760,6 +760,23 @@ class Entry
   def merge(hash)
     @status = hash.dup.update(@status)
   end
+
+  def dump_filenames2
+    if logseq = @status['_log']
+      log1 = log2 = nil
+      logseq.reverse_each {|log|
+        next unless log['content']
+        if log2 == nil
+          log2 = log
+        else
+          log1 = log
+          break unless content_unchanged(log1, log2)
+        end
+      }
+      puts log1['content'].pathname if log1
+      puts log2['content'].pathname if log2
+    end
+  end
 end
 
 module Enumerable
@@ -955,6 +972,7 @@ class Samidare
     @opt_template = TEMPLATE_LATEST_FILENAME
     @opt_remove_entry = nil
     @opt_dump_filenames = nil
+    @opt_dump_filenames2 = nil
     ARGV.options {|q|
       q.banner = 'webpecker [opts]'
       q.def_option('--help', 'show this message') {puts q; exit(0)}
@@ -969,6 +987,7 @@ class Samidare
       q.def_option('--dump-status', 'dump status') { @opt_dump_status = true }
       q.def_option('--dump-template-data', 'dump data for expand template') { @opt_dump_template_data = true }
       q.def_option('--dump-filenames', 'dump filenames of specified entry') { @opt_dump_filenames = true }
+      q.def_option('--dump-filenames2', 'dump two filenames of specified entry') { @opt_dump_filenames2 = true }
       q.def_option('--remove-entry', 'remove entry') { @opt_remove_entry = true }
       q.def_option('--single-thread', 'diable multi-threading') { $opt_max_threads = 1 }
       q.parse!
@@ -991,7 +1010,7 @@ class Samidare
     end
   end
 
-  def dump_filenames(status, entries)
+  def dump_filenames(entries)
     entries.each {|ent|
       unless (ARGV & ent.related_uris).empty?
         if logseq = ent.status['_log']
@@ -1001,6 +1020,14 @@ class Samidare
             end
           }
         end
+      end
+    }
+  end
+
+  def dump_filenames2(entries)
+    entries.each {|ent|
+      unless (ARGV & ent.related_uris).empty?
+        ent.dump_filenames2
       end
     }
   end
@@ -1034,13 +1061,21 @@ class Samidare
       return
     end
     data = nil
-    readonly = @opt_timing || @opt_dont_check || @opt_dump_status || @opt_dump_template_data || @opt_dump_filenames
+    readonly =
+      @opt_timing ||
+      @opt_dont_check ||
+      @opt_dump_status ||
+      @opt_dump_template_data ||
+      @opt_dump_filenames ||
+      @opt_dump_filenames2
     open_status(readonly) {|status|
       entries = create_entries(config, status, readonly)
       if @opt_dump_status
         dump_status(status, entries)
       elsif @opt_dump_filenames
-        dump_filenames(status, entries)
+        dump_filenames(entries)
+      elsif @opt_dump_filenames2
+        dump_filenames2(entries)
       elsif @opt_timing
         entries = entries.map {|entry|
           [entry.next_timing.localtime, entry]
