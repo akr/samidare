@@ -102,7 +102,7 @@ class AutoFile
     Thread.exclusive {
       yield "#{PREFIX}#{base}#{ext}"
       time = Time.now
-      base << "-#{time.strftime('%m-%d')}"
+      base << "_#{time.strftime('%m-%d')}"
       yield "#{PREFIX}#{base}#{ext}"
       base << "-#{time.strftime('%H:%M')}"
       yield "#{PREFIX}#{base}#{ext}"
