@@ -51,6 +51,7 @@ class LIRS
       }
       record_header = a.shift
       raise LIRS::Error.new("no record header") if record_header != RecordHeader
+      raise LIRS::Error.new("too few record fields") if a.length < 8
       return Record.new(*a)
     end
 
