@@ -310,9 +310,9 @@ class Entry
       end
     }
 
-    root = t.first_element
+    root = t.find_element
     if root and root.tagname == 'rss' || root.tagname == 'rdf:RDF' #xxx: check xmlns
-      if link = t.first_element('link')
+      if link = t.find_element('link')
         link_uri = link.text.strip
         if %r{\Ahttp://} =~ link_uri
           log['extractedLinkURI'] = link_uri

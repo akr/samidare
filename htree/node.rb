@@ -179,7 +179,7 @@ module HTree
     end
 
     # second argument for not-found?
-    def first_element(name=nil)
+    def find_element(name=nil)
       self.traverse {|e|
         next unless Elem === e
         next if name && e.tagname != name
@@ -189,7 +189,7 @@ module HTree
     end
 
     def title
-      e = first_element('title')
+      e = find_element('title')
       e && e.text.strip
     end
 
