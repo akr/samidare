@@ -155,7 +155,13 @@ class Entry
   def fetch(log)
     uri = @config['URI']
     opts = {"User-Agent"=>"samidare"}
-    if h = find_last_200
+    if h = find_last_200 and @hash['_log'].last['status'] != '412'
+      # publicfile rejects requests which have If-None-Match as:
+      #   412 I do not accept If-None-Match
+      # Since 412 means `Precondition Failed', samidare tries request without
+      # precondition.  If it success, samidare may know new valid condition.
+      # For example apache is replaced with publicfile,
+      # ETag should be forgotten.  Above 412 handling handle this case.
       if @config.fetch('UseIfModifiedSince', true)
         opts['If-Modified-Since'] = h['lastModifiedString'] if h['lastModifiedString']
       end
