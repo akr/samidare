@@ -68,7 +68,7 @@ class Entry
       else
         e2t + (e2t - e1t)
       end
-    elsif s1 = find_first_200
+    elsif s1 = find_first_200_with_current_content
       min = @config.fetch('MinimumInterval', DefaultMinimumInterval) # xxx: should support units other than second.
       max = @config.fetch('MaximumInterval', DefaultMaximumInterval)
       min = max if max < min
@@ -277,7 +277,7 @@ class Entry
     log << h
   end
 
-  def find_first_200
+  def find_first_200_with_current_content
     @hash['_log'].each {|h|
       return h if h['status'] == '200'
     }
@@ -319,7 +319,7 @@ class Entry
     h['title'] = h['Title']
     h['last-modified'] = '- no log -'
     unless log.empty?
-      if l = find_first_200
+      if l = find_first_200_with_current_content
         h['last-modified-found'] = l['clientDateBeg'] # xxx: clientDateEnd is better?
         if l.include? 'lastModifiedString'
           h['last-modified'] = Time.httpdate(l['lastModifiedString']).localtime.iso8601
