@@ -324,12 +324,19 @@ class Entry
       ignore_class = []
     end
 
+    if ignore_id = config['IgnoreID']
+      ignore_id = ignore_id.split(/\s+/)
+    else
+      ignore_id = []
+    end
+
     t = tree.filter_with_path {|e, path|
       not ( 
         (HTree::Elem === e && (e.tagname == 'style' ||
                                e.tagname == 'script')) ||
         ignore_pattern =~ path ||
-        (HTree::Elem === e && ignore_class.include?(e.stag.fetch_attribute_text('class', nil)))
+        (HTree::Elem === e && (ignore_class.include?(e.stag.fetch_attribute_text('class', nil)) ||
+                               ignore_id.include?(e.stag.fetch_attribute_text('id', nil))))
       )
     }
 
@@ -337,6 +344,7 @@ class Entry
     checksum_filter = []
     checksum_filter.concat ['IgnorePath', *ignore_path] if !ignore_path.empty?
     checksum_filter.concat ['IgnoreClass', *ignore_class] if !ignore_class.empty?
+    checksum_filter.concat ['IgnoreID', *ignore_id] if !ignore_id.empty?
 
     [t, checksum_filter]
   end
@@ -831,8 +839,8 @@ class Entry
       text2 << [n.text, path] if HTree::Text === n
     }
 
-    puts "checksum1: #{tree1.rcdata.sum} #{filename1} #{checksum_filter1.inspect}"
-    puts "checksum2: #{tree2.rcdata.sum} #{filename2} #{checksum_filter2.inspect}"
+    puts "checksum1: #{tree1.rcdata.sum} #{checksum_filter1.inspect} #{filename1}"
+    puts "checksum2: #{tree2.rcdata.sum} #{checksum_filter2.inspect} #{filename2}"
 
     [text1.length, text2.length].min.times {
       t1, p1 = text1.last
