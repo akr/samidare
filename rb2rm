@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'amarshal'
+require 'autofile'
 
 system("cp status.rm status.rm-")
 open("status.rb") {|input|

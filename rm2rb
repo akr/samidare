@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 
 require 'amarshal'
+require 'autofile'
 
 open("status.rm") {|input|
   open("status.rb", "w") {|output|
