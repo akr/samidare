@@ -92,7 +92,7 @@ class Entry
 
     client_date_1 = Time.now
     STDERR.puts "#{client_date_1.iso8601} fetch start #{uri}" if $VERBOSE
-    opts = {"User-Agent"=>"webpecker"}
+    opts = {"User-Agent"=>"samidare"}
     if h = find_last_200
       if @config.fetch('UseIfModifiedSince', true)
         opts['If-Modified-Since'] = h['lastModifiedString'] if h['lastModifiedString']
