@@ -18,6 +18,7 @@ require 'rexml/document'
 require 'zlib'
 require 'lirs'
 require 'autofile'
+require 'htree'
 
 CONFIG_FILENAME = 'config.yml'
 STATUS_FILENAME = 'status.rm'
@@ -213,11 +214,9 @@ class Entry
         h['contentEncoding'] = content_encoding if content_encoding
       end
       if content_type == 'text/html' && !content_encoding
-        t = Tidy.parse_string(content, :encoding=>content_charset, :wrap=>nil).head
-        t = t.children.find {|n| n.title? && !n.children.empty? && !n.children[0].text.empty? }
-        t = t.children[0] if t
-        t = t.text.chomp.decode_charset(content_charset) if t
-        h['extractedTitle'] = t.decode_html_escape.gsub(/\0/, '') if t
+        t = HTree.parse(content.decode_charset(content_charset))
+        t = t.title
+        h['extractedTitle'] = t.text if t
         if @config['ChecksumXPath']
           t = Mconv.conv(content, "utf-8", content_charset)
           t = Tidy.parse_string(t, "output-xml"=>true, :encoding=>"UTF-8", :wrap=>nil).dump
