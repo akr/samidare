@@ -2,7 +2,7 @@ class LIRS
   RecordHeader = 'LIRS'
 
   def LIRS.load(filename)
-    File.open (filename) {|f|
+    File.open(filename) {|f|
       begin
 	return decode(f)
       rescue LIRS::Error
