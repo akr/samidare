@@ -853,10 +853,7 @@ class Samidare
   #def load_status(f) YAML.load(f) end
   #def save_status(f, d) f.puts d.to_yaml end
   def load_status(f) Marshal.load(f) end
-  def save_status(d, f)
-    Marshal.dump(d, f)
-    AutoFile.clear
-  end
+  def save_status(d, f) Marshal.dump(d, f) end
 
   def open_status(readonly=false)
     if readonly
@@ -875,6 +872,7 @@ class Samidare
           status = []
         else
           status = load_status(f)
+          AutoFile.clear
         end
         yield status
         save_status(status, out)
