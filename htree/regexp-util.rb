@@ -1,8 +1,10 @@
-def Regexp.alt(*args)
-  if args.empty?
-    /(?!)/
-  else
-    Regexp.compile(args.map {|arg| Regexp === arg ? arg.to_s : Regexp.quote(arg) }.join('|'))
+unless defined? Regexp.union
+  def Regexp.union(*args)
+    if args.empty?
+      /(?!)/
+    else
+      Regexp.compile(args.map {|arg| Regexp === arg ? arg.to_s : Regexp.quote(arg) }.join('|'))
+    end
   end
 end
 

@@ -387,7 +387,7 @@ class Entry
   end
 
   def path2pattern(*paths)
-    /\A#{Regexp.alt(*paths.map {|path|
+    /\A#{Regexp.union(*paths.map {|path|
       Regexp.new(path.gsub(%r{[^/]+}) {|step|
         if /\[(\d+)\]\z/ =~ step
           n = $1.to_i

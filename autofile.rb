@@ -114,7 +114,7 @@ class AutoFile
     else
       base = arr[0] + '-' + arr[-1]
     end
-    base = $` if /#{Regexp.alt ext, *ExtSynonym[ext]}\z/i =~ base
+    base = $` if /#{Regexp.union ext, *ExtSynonym[ext]}\z/i =~ base
 
     Thread.exclusive {
       yield "#{PREFIX}#{base}#{ext}"
