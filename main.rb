@@ -173,15 +173,19 @@ class Entry
       else
         STDERR.puts "#{client_date_2.iso8601} fetch end #{log['status']} #{log['statusMessage']} #{uri}"
       end
-
     end
 
     begin
-      examine(page, meta, log) if page
+      if page && !log['trouble'] && !log['backtrace'] && !log['exception_class']
+        examine(page, meta, log)
+      end
     rescue
       STDERR.puts "|#{Time.now.iso8601} examine ERROR: #{$!.message} (#{$!.class}) #{uri}"
       $!.backtrace.each {|pos| STDERR.puts "| #{pos}" }
-      raise
+
+      log['trouble'] = "exception"
+      log['backtrace'] = $!.backtrace
+      log['exception_class'] = $!.class
     end
 
     add_log(log)
