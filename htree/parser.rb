@@ -37,8 +37,10 @@ module HTree
              |[^<>]+|[<>]/ox) {
       if cdata_content
         if $4 && (etag = ETag.new($&)).tagname == cdata_content
-          yield Text.create_cdata_content(text) if text
-          text = nil
+          if text
+            yield Text.create_cdata_content(text)
+            text = nil
+          end
           yield etag
           cdata_content = nil
         else
@@ -76,7 +78,13 @@ module HTree
         text << $&
       end
     }
-    yield Text.create_pcdata(text) if text
+    if text
+      if cdata_content
+        yield Text.create_cdata_content(text)
+      else
+        yield Text.create_pcdata(text)
+      end
+    end
   end
 
   def HTree.parse_pairs(elts)
