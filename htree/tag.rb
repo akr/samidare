@@ -35,7 +35,7 @@ module HTree
           @attrs << ($2 ? [name, HTree.fix_character_reference($+)] : [name])
         }
         if last_attr
-          /\A#{InvalidAttr1End_C}\z/ =~ last_attr
+          /#{Pat::InvalidAttr1End_C}/ =~ last_attr
           name = $1.downcase
           @attrs << ($2 ? [name, HTree.fix_character_reference($+)] : [name])
         end
