@@ -55,6 +55,27 @@ class Entry
     t1 <= t2
   end
 
+  def expect_next_by_periodical
+    h = find_last_200
+    return nil unless h
+    periodical = h['periodical']
+    return nil unless periodical 
+    return nil if periodical.length < 2
+    last_modified = periodical.last
+    intervals = []
+    prev = nil
+    periodical.each {|curr|
+      intervals << curr - prev if prev
+      prev = curr
+    }
+    t = last_modified + intervals.min
+    begin # adjust server/client time difference
+      t += (h['clientDateEnd'] || h['clientDateBeg']) - Time.httpdate(h['serverDateString'])
+    rescue
+    end
+    t
+  end
+
   def next_timing
     if @hash['_update_info']
       Time.now
@@ -68,18 +89,28 @@ class Entry
       else
         e2t + (e2t - e1t)
       end
-    elsif s1 = find_first_200_with_current_content
+    elsif s1 = find_first_200_with_current_content # Is there any 200?
       min = @config.fetch('MinimumInterval', DefaultMinimumInterval) # xxx: should support units other than second.
       max = @config.fetch('MaximumInterval', DefaultMaximumInterval)
       min = max if max < min
+
       s2 = find_last_success
-      begin
-        s1t = Time.httpdate(s1['lastModifiedString']) +
-          ((s1['clientDateEnd'] || s1['clientDateBeg']) - Time.httpdate(s1['serverDateString']))
-      rescue
-        s1t = s1['clientDateEnd'] || s1['clientDateBeg']
-      end
       s2t = s2['clientDateEnd'] || s2['clientDateBeg']
+
+      if @config['Periodical']
+        s1t = expect_next_by_periodical
+        return s1t if s1t && s2t < s1t
+      end
+      if !s1t
+        begin
+          s1t = Time.httpdate(s1['lastModifiedString']) +
+            ((s1['clientDateEnd'] || s1['clientDateBeg']) - Time.httpdate(s1['serverDateString']))
+        rescue
+          s1t = s1['clientDateEnd'] || s1['clientDateBeg']
+        end
+        s1t = s2t if s2t < s1t
+      end
+
       r = s2t + (s2t - s1t)
       if r < s2t + min
         s2t + min
@@ -106,7 +137,7 @@ class Entry
       end
       opts['If-None-Match'] = h['eTag'] if h['eTag']
     end
-    PP.pp([uri, opts], STDERR) if $VERBOSE
+    #PP.pp([uri, opts], STDERR) if $VERBOSE
     page = nil
     meta = nil
     status = nil
@@ -239,8 +270,43 @@ class Entry
   }
   StatusMap.default = 'e' # Error
 
+  MaxPeriodicalNum = 10
+  def add_periodical_info(h)
+    return if h['status'] != '200'
+
+    log = @hash['_log']
+
+    periodical = nil
+    log.reverse_each {|l|
+      if l['periodical']
+        periodical = l['periodical'].dup
+        break
+      end
+    }
+    periodical ||= []
+
+    begin
+      t = Time.httpdate(h['lastModifiedString'])
+    rescue ArgumentError
+    end
+
+    if t && (periodical.empty? || periodical.last != t)
+      periodical << t
+    end
+
+    if MaxPeriodicalNum < periodical.length
+      periodical = periodical[(-MaxPeriodicalNum)..(-1)]
+    end
+
+    h['periodical'] = periodical if !periodical.empty?
+  end
+
   def add_log(h)
     @hash['_log'] = [] unless @hash['_log']
+
+    #add_periodical_info(h) if @config['Periodical']
+    add_periodical_info(h)
+
     log = @hash['_log']
     history = log.map {|l| StatusMap[l['status']] }.join + ' ' + StatusMap[h['status']]
 
