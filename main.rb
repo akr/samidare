@@ -812,8 +812,13 @@ class Entry
     unless logseq.empty?
       if l = find_first_200_with_current_content
         h['last-modified-found'] = l['clientDateBeg'] # xxx: clientDateEnd is better?
-        if l.include? 'lastModifiedString'
-          h['last-modified'] = Time.httpdate_robust(l['lastModifiedString']).localtime
+        if l.include?('lastModifiedString') and
+           begin
+            h['last-modified'] = Time.httpdate_robust(l['lastModifiedString'])
+           rescue
+             false
+           end
+          h['last-modified'].localtime
           l2 = find_last_200
           unless l.equal? l2
             if l['lastModifiedString'] != l2['lastModifiedString']
