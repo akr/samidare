@@ -242,12 +242,15 @@ class Entry
     content, content_encoding = decode_content_encoding(page, log)
     log['content'] = AutoFile.new(uri, content, content_type)
 
-    #xxx: content.guess_charset is not valid if content_encoding is non-nil
     content_charset = @config.fetch('ForceCharset') {
-      page.charset { @config['DefaultCharset'] || content.guess_charset }
+      c = page.charset { nil }
+      c = nil if c && !Mconv.valid_charset?(c)
+      c = @config['DefaultCharset'] if !c
+      c = content.guess_charset if !c && !content_encoding
+      c
     }
     content_charset = content_charset.downcase
-    log['contentCharset'] = content_charset
+    log['contentCharset'] = content_charset if content_charset
 
     # checksum for gzip/deflate decoded content.
     # compression level is not affected.
@@ -255,7 +258,7 @@ class Entry
 
     return if content_encoding
 
-    decoded_content = content.decode_charset(content_charset)
+    decoded_content = content.decode_charset(content_charset) if content_charset
 
     examine_html(content_type, decoded_content, log)
     examine_lirs(decoded_content, log)
