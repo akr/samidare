@@ -32,7 +32,7 @@ def expand_require(out, filename, dirs, main, included={})
 	  if dir
 	    out.print "#", line
 	    filename = "#{dir}/#{req}.rb"
-	    included[req] = true
+	    included[req] = filename
 	    endmark = 'End_' + [req].pack("m*").delete("\n")
 	    #out.print "eval <<'#{endmark}', TOPLEVEL_BINDING, #{"[#{filename}]".dump}, #{out.output_line+1}\n"
 	    expand_require(out, filename, dirs, false, included)
@@ -62,10 +62,12 @@ end
 
 def parse_options
   $output_filename = nil
+  $dep_output_filename = nil
   ARGV.options {|q|
     q.banner = 'rb-link [opts] script-file [library-directories...]'
     q.def_option('--help', 'show this message') {puts q; exit(0)}
     q.def_option('--output=filename', '-o', 'specify output file') {|filename| $output_filename = filename}
+    q.def_option('--dependency=filename', '-d', 'specify dependency output file') {|filename| $dep_output_filename = filename}
     q.parse!
   }
 end
@@ -74,6 +76,7 @@ def open_output
   if $output_filename
     File.open($output_filename, 'w') {|f|
       yield f
+      f.chmod 0755
     }
   else
     yield STDOUT
@@ -91,7 +94,13 @@ def main
     out.extend CountOutputLine
     interpreter_path = File.join(Config::CONFIG["bindir"], Config::CONFIG["ruby_install_name"])
     out.print "#! #{interpreter_path}\n"
-    expand_require(out, script, libdirs, true)
+    included = {}
+    expand_require(out, script, libdirs, true, included)
+    if $dep_output_filename
+      open($dep_output_filename, 'w') {|f|
+        f.puts "#{$output_filename} : #{included.values.join(' ')}"
+      }
+    end
   }
 end
 

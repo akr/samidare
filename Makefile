@@ -1,4 +1,4 @@
-samidare: main.rb
-	ruby rb-link main.rb > samidare
-	chmod 755 samidare
+samidare: rb-link
+	ruby rb-link -d d.samidare -o samidare main.rb
 
+-include d.*
