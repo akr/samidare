@@ -5,8 +5,9 @@ class HTree
     Name = %r{[A-Za-z_:][-A-Za-z0-9._:]*}
     DocType = %r{<!DOCTYPE.*?>}m
     ProcIns = %r{<\?.*?\?>}m
-    StartTag = %r{<#{Name}(?:\s+#{Name}(?:=(?:'[^'>]*'|"[^">]*"|[^\s>]+))?)*\s*/?>}
+    StartTag = %r{<#{Name}(?:\s+#{Name}(?:=(?:'[^'>]*'|"[^">]*"|[^\s>]+))?)*\s*>}
     EndTag = %r{</#{Name}\s*>}
+    EmptyTag = %r{<#{Name}(?:\s+#{Name}(?:=(?:'[^'>]*'|"[^">]*"|[^\s>]+))?)*\s*/>}
     Comment = %r{<!--.*?-->}m
   end
 
@@ -88,7 +89,7 @@ class HTree
 
   def HTree.scan(str)
     text = nil
-    str.scan(%r{(#{Pat::DocType})|(#{Pat::ProcIns})|(#{Pat::StartTag})|(#{Pat::EndTag})|(#{Pat::Comment})|[^<>]+|[<>]}) {
+    str.scan(%r{(#{Pat::DocType})|(#{Pat::ProcIns})|(#{Pat::StartTag})|(#{Pat::EndTag})|(#{Pat::EmptyTag})|(#{Pat::Comment})|[^<>]+|[<>]}) {
       if $+
         if text
           yield Fragment.new(text, :text)
@@ -102,6 +103,8 @@ class HTree
           yield Fragment.new($&, :stag)
         elsif $4
           yield Fragment.new($&, :etag)
+        elsif $5
+          yield Fragment.new($&, :empty)
         else
           yield Fragment.new($&, :comment)
         end
@@ -125,9 +128,6 @@ class HTree
   def HTree.parse_empties(str)
     frags = []
     HTree.scan(str) {|f|
-      if f.mark == :stag && %r{/>\z} =~ f.to_s
-        f.mark = :empty
-      end
       frags << f
     }
     last_tag = nil
