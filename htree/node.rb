@@ -49,16 +49,11 @@ module HTree
     end
 =end
 
-    def each_node
-      yield self
-      @elts.each {|elt|
-        elt.each_node {|e| yield e }
-      }
+    def each
+      @elts.each {|e| yield e }
     end
 
-    def each_node_with_path
-      path = '/'
-      yield self, path
+    def each_with_path
       count = {}
       @elts.each {|elt|
         node_test = elt.node_test
@@ -70,25 +65,44 @@ module HTree
         node_test = elt.node_test
         pos[node_test] ||= 0
         n = pos[node_test] += 1
-        child_path = "/#{node_test}"
-        child_path << "[#{n}]" unless n == 1 && count[node_test] == 1
-        elt.each_node_with_path(child_path) {|e, p|
+        child_path = node_test
+        child_path += "[#{n}]" unless n == 1 && count[node_test] == 1
+        yield elt, child_path
+      }
+    end
+
+    def traverse
+      yield self
+      @elts.each {|elt|
+        elt.traverse {|e| yield e }
+      }
+    end
+
+    def traverse_with_path
+      path = '/'
+      yield self, path
+      self.each_with_path {|elt, relpath|
+        elt.traverse_with_path(path + relpath) {|e, p|
           yield e, p
         }
       }
     end
 
-    def each_element(name=nil)
+    def fold_element
+      elts = []
       @elts.each {|elt|
-        elt.each_element(name) {|e|
-          yield e
-        }
+        elts << elt.fold_element {|e, es| yield e, es }
       }
+      Doc.new(elts)
     end
 
     # second argument for not-found?
     def first_element(name)
-      self.each_element(name) {|e| return e }
+      self.traverse {|e|
+        next unless Elem === e || EmptyElem === e
+        next unless e.tagname == name
+        return e
+      }
       nil
     end
 
@@ -120,20 +134,20 @@ module HTree
     end
     attr_reader :stag, :elts, :etag
 
+    def tag
+      @stag
+    end
+
     def tagname
       @stag.tagname
     end
     alias node_test tagname
 
-    def each_node
-      yield self
-      @elts.each {|elt|
-        elt.each_node {|e| yield e }
-      }
+    def each
+      @elts.each {|e| yield e }
     end
 
-    def each_node_with_path(path)
-      yield self, path
+    def each_with_path
       count = {}
       @elts.each {|elt|
         node_test = elt.node_test
@@ -145,19 +159,34 @@ module HTree
         node_test = elt.node_test
         pos[node_test] ||= 0
         n = pos[node_test] += 1
-        child_path = "#{path}/#{node_test}"
-        child_path << "[#{n}]" unless n == 1 && count[node_test] == 1
-        elt.each_node_with_path(child_path) {|e, p|
+        child_path = node_test
+        child_path += "[#{n}]" unless n == 1 && count[node_test] == 1
+        yield elt, child_path
+      }
+    end
+
+    def traverse
+      yield self
+      @elts.each {|elt|
+        elt.traverse {|e| yield e }
+      }
+    end
+
+    def traverse_with_path(path)
+      yield self, path
+      each_with_path {|elt, relpath|
+        elt.traverse_with_path("#{path}/#{relpath}") {|e, p|
           yield e, p
         }
       }
     end
 
-    def each_element(name=nil)
-      yield self if name == nil || self.tagname == name
+    def fold_element
+      elts = []
       @elts.each {|elt|
-        elt.each_element(name) {|e| yield e }
+        elts << elt.fold_element {|e, es| yield e, es }
       }
+      yield self, elts
     end
 
     def raw_string
@@ -190,22 +219,26 @@ module HTree
     def initialize(tag)
       @tag = tag
     end
+    attr_reader :tag
 
     def tagname
       @tag.tagname
     end
     alias node_test tagname
 
-    def each_node
+    def each
+    end
+
+    def traverse
       yield self
     end
 
-    def each_node_with_path(path)
+    def traverse_with_path(path)
       yield self, path
     end
 
-    def each_element(name=nil)
-      yield self if name == nil || self.tagname == name
+    def fold_element
+      yield self, nil
     end
 
     def raw_string; @tag.to_s; end
@@ -230,12 +263,16 @@ module HTree
 
     def raw_string; @str; end
 
-    def each_node
+    def traverse
       yield self
     end
 
-    def each_node_with_path(path)
+    def traverse_with_path(path)
       yield self, path
+    end
+
+    def fold_element
+      self
     end
 
     def pretty_print(pp)
@@ -252,28 +289,24 @@ module HTree
 
   class DocType
     include Leaf
-    def each_element(name=nil) end
     def rcdata; '' end
     def node_test; 'doctype()' end
   end
 
   class ProcIns
     include Leaf
-    def each_element(name=nil) end
     def rcdata; '' end
     def node_test; 'processing-instruction()' end
   end
 
   class Comment
     include Leaf
-    def each_element(name=nil) end
     def rcdata; '' end
     def node_test; 'comment()' end
   end
 
   class BogusETag
     include Leaf
-    def each_element(name=nil) end
     def rcdata; '' end
     def node_test; 'bogus-etag()' end
   end
@@ -304,8 +337,6 @@ module HTree
     attr_reader :rcdata
 
     def node_test; 'text()' end
-
-    def each_element(name=nil) end
   end
 
   # xxx: これは属性でも使うので、tag 行き?
