@@ -572,7 +572,10 @@ class Webpecker
         target = File.open(filename, File::RDWR|File::CREAT)
         stat1 = target.stat
         if nonblock
-          return unless target.flock(File::LOCK_EX | File::LOCK_NB)
+          unless target.flock(File::LOCK_EX | File::LOCK_NB)
+            STDERR.puts "already locked: #{filename}" if $VERBOSE
+            return
+          end
         else
           target.flock(File::LOCK_EX)
         end
