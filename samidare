@@ -387,46 +387,69 @@ class Entry
     h['periodical'] = periodical if !periodical.empty?
   end
 
-  def add_log(h)
+  def add_log(log)
     @hash['_log'] = [] unless @hash['_log']
 
-    #add_periodical_info(h) if @config['Periodical']
-    add_periodical_info(h)
+    #add_periodical_info(log) if @config['Periodical']
+    add_periodical_info(log)
 
-    log = @hash['_log']
-    history = log.map {|l| StatusMap[l['status']] }.join + ' ' + StatusMap[h['status']]
+    logseq = @hash['_log']
 
-    case history
-    when /ee e/
-      log.pop
-    when /e e/
-    when / e/
-    when /e+ [sn]/
-      log.pop while !log.empty? && StatusMap[log.last['status']] == 'e'
-      history.sub!(/e+ /, ' ')
-    end
+    case StatusMap[log['status']]
+    when 'e'
+      history = logseq.map {|l| StatusMap[l['status']] }.join + ' ' + StatusMap[log['status']]
+      if /ee e/ =~ history
+        logseq.pop
+      end
+      logseq << log
+    when 's', 'n'
+      logseq.reject! {|l| StatusMap[l['status']] == 'e' }
+      logseq.shift while !logseq.empty? && StatusMap[logseq.first['status']] == 'n'
 
-    case history
-    when / e/
-    when ' s'
-    when 's s'
-      log.clear unless log[0]['checksum'] && h['checksum'] && log[0]['checksum'] == h['checksum']
-    when 's n'
-    when 'ss s'
-      (log[0]['checksum'] && h['checksum'] && log[0]['checksum'] == h['checksum']) ? log.pop : log.clear
-    when 'ss n'
-    when 'sn s'
-      (log[0]['checksum'] && h['checksum'] && log[0]['checksum'] == h['checksum']) ? log.pop : log.clear
-    when 'sn n'
-      log.pop
-    when 'ssn s'
-      (log[0]['checksum'] && h['checksum'] && log[0]['checksum'] == h['checksum']) ? (log.pop; log.pop) : log.clear
-    when 'ssn n'
-      log.pop
+      logseq << log
+
+      #pp logseq.map {|l| StatusMap[l['status']] + "#{l['checksum']}" }
+      logs = [[]]
+      logseq.each {|l|
+        if logs.last.empty?
+          logs.last << l
+        elsif StatusMap[l['status']] == 'n'
+          logs.last << l
+        elsif logs.last.last['checksum'] && l['checksum'] && logs.last.last['checksum'] == l['checksum']
+          logs.last << l
+        else
+          logs << [l]
+        end
+      }
+      #pp logs.map {|ll| ll.map {|l| StatusMap[l['status']] + "#{l['checksum']}" } }
+
+      logs[0...-1].each {|ll|
+        ll.reject! {|l| StatusMap[l['status']] == 'n' }
+        ll[1..-1] = [] if 2 <= ll.length
+      }
+
+      ll = logs.last
+      ll.reject! {|l| StatusMap[l['status']] == 'n' } # removes `log' if it is 'n'.
+      ll[1...-1] = [] if 2 < ll.length 
+      if StatusMap[log['status']] == 'n'
+        ll << log # re-add `log'.
+      end
+
+      nlogs = 2 # should be configurable?
+      #pp logs.map {|ll| ll.map {|l| StatusMap[l['status']] + "#{l['checksum']}" } }
+      if nlogs < logs.length
+        logs[0...-nlogs] = []
+      end
+      #pp logs.map {|ll| ll.map {|l| StatusMap[l['status']] + "#{l['checksum']}" } }
+
+      logseq.replace logs.flatten
     else
-      log.clear
+      raise "unrecognized log-status [bug]: #{StatusMap[log['status']].inspect}"
     end
-    log << h
+
+    unless logseq.last.equal? log
+      raise "current log is not added [bug]"
+    end
   end
 
   def find_first_200_with_current_content
@@ -452,7 +475,7 @@ class Entry
     nil
   end
 
-  def find_last_success
+  def find_last_success # 200 or 304
     @hash['_log'].reverse_each {|h|
       return h if StatusMap[h['status']] != 'e'
     }

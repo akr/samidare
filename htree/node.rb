@@ -56,6 +56,28 @@ module HTree
       }
     end
 
+    def each_node_with_path
+      path = '/'
+      yield self, path
+      count = {}
+      @elts.each {|elt|
+        node_test = elt.node_test
+        count[node_test] ||= 0
+        count[node_test] += 1
+      }
+      pos = {}
+      @elts.each {|elt|
+        node_test = elt.node_test
+        pos[node_test] ||= 0
+        n = pos[node_test] += 1
+        child_path = "/#{node_test}"
+        child_path << "[#{n}]" unless n == 1 && count[node_test] == 1
+        elt.each_node_with_path(child_path) {|e, p|
+          yield e, p
+        }
+      }
+    end
+
     def each_element(name=nil)
       @elts.each {|elt|
         elt.each_element(name) {|e|
@@ -101,11 +123,33 @@ module HTree
     def tagname
       @stag.tagname
     end
+    alias node_test tagname
 
     def each_node
       yield self
       @elts.each {|elt|
         elt.each_node {|e| yield e }
+      }
+    end
+
+    def each_node_with_path(path)
+      yield self, path
+      count = {}
+      @elts.each {|elt|
+        node_test = elt.node_test
+        count[node_test] ||= 0
+        count[node_test] += 1
+      }
+      pos = {}
+      @elts.each {|elt|
+        node_test = elt.node_test
+        pos[node_test] ||= 0
+        n = pos[node_test] += 1
+        child_path = "#{path}/#{node_test}"
+        child_path << "[#{n}]" unless n == 1 && count[node_test] == 1
+        elt.each_node_with_path(child_path) {|e, p|
+          yield e, p
+        }
       }
     end
 
@@ -150,9 +194,14 @@ module HTree
     def tagname
       @tag.tagname
     end
+    alias node_test tagname
 
     def each_node
       yield self
+    end
+
+    def each_node_with_path(path)
+      yield self, path
     end
 
     def each_element(name=nil)
@@ -185,6 +234,10 @@ module HTree
       yield self
     end
 
+    def each_node_with_path(path)
+      yield self, path
+    end
+
     def pretty_print(pp)
       pp.group(1, '{', '}') {
         pp.text self.class.name.sub(/.*::/,'').downcase
@@ -201,24 +254,28 @@ module HTree
     include Leaf
     def each_element(name=nil) end
     def rcdata; '' end
+    def node_test; 'doctype()' end
   end
 
   class ProcIns
     include Leaf
     def each_element(name=nil) end
     def rcdata; '' end
+    def node_test; 'processing-instruction()' end
   end
 
   class Comment
     include Leaf
     def each_element(name=nil) end
     def rcdata; '' end
+    def node_test; 'comment()' end
   end
 
   class BogusETag
     include Leaf
     def each_element(name=nil) end
     def rcdata; '' end
+    def node_test; 'bogus-etag()' end
   end
 
   class Text
@@ -245,6 +302,8 @@ module HTree
       @rcdata = rcdata
     end
     attr_reader :rcdata
+
+    def node_test; 'text()' end
 
     def each_element(name=nil) end
   end
