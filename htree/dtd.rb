@@ -9,7 +9,7 @@ class HTree
     end
 
     Name = /[A-Za-z_:][-A-Za-z0-9._:]*/
-    NameLikeVal = /[-A-Za-z0-9._:]+/
+    Nmtoken = /[-A-Za-z0-9._:]+/
     Comment = /--.*?--/m
     ParaEntRef = /%(#{Name});?/
     MarkupDecl = /<!(?:#{Comment}|.)*?>/m
@@ -243,18 +243,18 @@ class HTree
         end
 
         case str
-        when /\A(#{NameLikeVal})\s+/o
+        when /\A(#{Nmtoken})\s+/o
           str = $'
           val = $1
-        when /\A\(\s*(#{NameLikeVal}(?:\s*\|\s*#{NameLikeVal})*)\s*\)\s+/o
+        when /\A\(\s*(#{Nmtoken}(?:\s*\|\s*#{Nmtoken})*)\s*\)\s+/o
           str = $'
-          val = $1.scan(NameLikeVal)
+          val = $1.scan(Nmtoken)
         else
           raise "unexpected attribute definition: #{str.inspect}"
         end
 
         case str
-        when /\A(#{NameLikeVal})\b\s*/o
+        when /\A(#{Nmtoken})\b\s*/o
           str = $'
           default = $1
         when /\A("[^"]*")\s*/
@@ -266,7 +266,7 @@ class HTree
         when /\A(#FIXED\s+(?:"[^"]*"|'[^']*'))\s*/
           str = $'
           default = $1
-        when /\A(#FIXED\s+#{NameLikeVal})\b\s*/o
+        when /\A(#FIXED\s+#{Nmtoken})\b\s*/o
           str = $'
           default = $1
         else
