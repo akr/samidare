@@ -31,6 +31,7 @@ class Entry
     @hash = hash
     @config = config
     ENTRIES[@hash['URI']] = self
+    ENTRIES[@hash['LinkURI']] = self if @hash['LinkURI']
   end
   attr_reader :hash
   attr_reader :config
@@ -220,7 +221,7 @@ class Entry
             t1 = Time.at(r1.last_modified.to_i) if old_lirs
             t2 = Time.at(r2.last_modified.to_i)
             if e.find_last_success['clientDateEnd'] < t2 #xxx: not so acculate.
-              p [:LIRS_UPDATE, @config['URI'], uri, t1, t2]
+              p [:LIRS_UPDATE, uri, t1, t2, @config['URI']]
               ENTRIES[uri].hash['_update_info'] = true
             end
           end
@@ -514,6 +515,13 @@ class Webpecker
     Marshal.load(Marshal.dump(o))
   end
 
+  def deep_freeze(o)
+    objs = []
+    o = Marshal.load(Marshal.dump(o), lambda {|obj| objs << obj })
+    objs.each {|obj| obj.freeze }
+    o
+  end
+
   def load_config
     config = config_flatten(File.open(CONFIG_FILENAME) {|f| YAML.load(f) })
     config.each {|h|
@@ -527,21 +535,33 @@ class Webpecker
   def load_status(f) Marshal.load(f) end
   def save_status(d, f) Marshal.dump(d, f) end
 
-  def open_status
-    open_lock(STATUS_FILENAME, true) {|f, out|
-      if f.stat.size == 0
-        status = []
-      else
-        status = load_status(f)
-      end
-      yield status
-      save_status(status, out)
-    }
+  def open_status(readonly=false)
+    if readonly
+      open(STATUS_FILENAME) {|f|
+        if f.stat.size == 0
+          status = []
+        else
+          status = load_status(f)
+        end
+        status = deep_freeze(status)
+        yield status
+      }
+    else
+      open_lock(STATUS_FILENAME, true) {|f, out|
+        if f.stat.size == 0
+          status = []
+        else
+          status = load_status(f)
+        end
+        yield status
+        save_status(status, out)
+      }
+    end
   end
 
   def generate_output(data)
     data = deep_copy(data)
-    result = XTemplate::XMLTemplate.new(File.read(TEMPLATE_LATEST_FILENAME)).expand(data)
+    result = XTemplate::XMLTemplate.new(File.read(@opt_template)).expand(data)
     result.gsub!(/&apos;/, "'")
     if @opt_output != '-'
       dir = File.dirname @opt_output
@@ -567,6 +587,9 @@ class Webpecker
     @opt_force_check = nil
     @opt_timing = nil
     @opt_dump_config = nil
+    @opt_dump_status = nil
+    @opt_dump_template_data = nil
+    @opt_template = TEMPLATE_LATEST_FILENAME
     ARGV.options {|q|
       q.banner = 'webpecker [opts]'
       q.def_option('--help', 'show this message') {puts q; exit(0)}
@@ -574,13 +597,16 @@ class Webpecker
       q.def_option('--no-check', '-n', 'don\'t check web') { @opt_dont_check = true }
       q.def_option('--force', '-f', 'force check (avoid timing control mechanism)') { @opt_force_check = true }
       q.def_option('--output=filename', '-o', 'specify output file') {|filename| @opt_output = filename }
+      q.def_option('--template=filename', '-T', 'specify template') {|filename| @opt_template = filename }
       q.def_option('--timing', '-t', 'show timings') { @opt_timing = true }
       q.def_option('--dump-config', 'dump flatten configuration') { @opt_dump_config = true }
+      q.def_option('--dump-status', 'dump status') { @opt_dump_status = true }
+      q.def_option('--dump-template-data', 'dump data for expand template') { @opt_dump_template_data = true }
       q.parse!
     }
   end
 
-  def create_entries(config, status)
+  def create_entries(config, status, readonly=false)
     logs = {}
     status.each {|status_ent|
       if status_ent.include?('URI') && status_ent.include?('_log')
@@ -588,14 +614,14 @@ class Webpecker
       end
     }
 
-    status.clear
+    status.clear unless readonly
 
     entries = []
     config.each {|config_ent|
       uri = config_ent['URI']
       log = logs[uri] || []
       status_ent = { 'URI' => uri, '_log' => log }
-      status << status_ent
+      status << status_ent unless readonly
       entries << Entry.new(status_ent, config_ent)
     }
     entries
@@ -603,15 +629,19 @@ class Webpecker
 
   def main
     parse_options
-    # xxx if @opt_dont_check, shouldn't lock/write-back status.rm
     config = load_config
     if @opt_dump_config
       puts config.to_yaml
-      exit
+      return
     end
     data = nil
-    open_status {|status|
-      entries = create_entries(config, status)
+    readonly = @opt_timing || @opt_dont_check || @opt_dump_status || @opt_dump_template_data
+    open_status(readonly) {|status|
+      if @opt_dump_status
+        pp status
+        return
+      end
+      entries = create_entries(config, status, readonly)
       if @opt_timing
         entries.map {|entry|
           [entry.next_timing.localtime, entry]
@@ -622,7 +652,7 @@ class Webpecker
           puts s
         }
       else
-        unless @opt_dont_check
+        unless readonly
           entries.concurrent_map {|entry|
             next unless entry.update_info?
             entry.check if entry.should_check? && (@opt_force_check || entry.timing_check)
@@ -644,6 +674,10 @@ class Webpecker
             end
           }.reverse
         }
+        if @opt_dump_template_data
+          pp data
+          return
+        end
         generate_output(data)
       end
     }
