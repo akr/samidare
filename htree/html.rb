@@ -10,14 +10,15 @@ module HTree
     CDATA = /<!\[CDATA\[.*?\]\]>/m
 
     ValidAttr = /#{Name}(?:\s*=\s*(?:"[^"]*"|'[^']*'|[-A-Za-z._:]*))?/
-    InvalidAttr = /#{Name}(?:\s*=\s*(?:'[^'<>]*'|"[^"<>]*"|[^\s<>"']*))?/
+    InvalidAttr1 = /#{Name}(?:\s*=\s*(?:'[^'<>]*'|"[^"<>]*"|[^\s<>"']*))?/
+    InvalidAttr1End = /#{Name}(?:\s*=\s*(?:'[^'<>]*|"[^"<>]*))/
 
     ValidStartTag = /<#{Name}(?:\s+#{ValidAttr})*\s*>/
-    InvalidStartTag = /<#{Name}(?:\s+#{InvalidAttr})*\s*>/
+    InvalidStartTag = /<#{Name}(?:(?:\b|\s+)#{InvalidAttr1})*(?:(?:\b|\s+)#{InvalidAttr1End})?\s*>/
     StartTag = /#{ValidStartTag}|#{InvalidStartTag}/
 
     ValidEmptyTag = %r{<#{Name}(?:\s+#{ValidAttr})*\s*/>}
-    InvalidEmptyTag = %r{<#{Name}(?:\s+#{InvalidAttr})*\s*/>}
+    InvalidEmptyTag = %r{<#{Name}(?:(?:\b|\s+)#{InvalidAttr1})*(?:(?:\b|\s+)#{InvalidAttr1End})?\s*/>}
     EmptyTag = /#{ValidEmptyTag}|#{InvalidEmptyTag}/
 
     EndTag = %r{</#{Name}\s*>}
