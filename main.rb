@@ -179,7 +179,8 @@ class Entry
     begin
       examine(page, meta, log) if page
     rescue
-      p [:ERROR, uri, $!]
+      STDERR.puts "|#{Time.now.iso8601} examine ERROR: #{$!.message} (#{$!.class}) #{uri}"
+      $!.backtrace.each {|pos| STDERR.puts "| #{pos}" }
       raise
     end
 
@@ -306,17 +307,17 @@ class Entry
 
     t.traverse_element("meta") {|e|
       begin
-        next unless e.stag.fetch_attribute_text("http-equiv").downcase == "last-modified"
-        log['extractedLastModified'] = Time.httpdate_robust(e.stag.fetch_attribute_text("content"))
+        next unless e.fetch_attr("http-equiv").downcase == "last-modified"
+        log['extractedLastModified'] = Time.httpdate_robust(e.fetch_attr("content"))
         break
       rescue IndexError, ArgumentError
       end
     }
 
-    root = t.find_element
-    if root and root.tagname == 'rss' || root.tagname == 'rdf:RDF' #xxx: check xmlns
+    root = t.root rescue nil
+    if root and root.name == 'rss' || root.name == '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}RDF'
       if link = t.find_element('link')
-        link_uri = link.text.strip
+        link_uri = link.extract_text.to_s.strip
         if %r{\Ahttp://} =~ link_uri
           log['extractedLinkURI'] = link_uri
         end
@@ -325,7 +326,7 @@ class Entry
 
     t, checksum_filter = ignore_tree(t)
     log['checksum_filter'] = checksum_filter unless checksum_filter.empty?
-    log['checksum_filtered'] = t.rcdata.sum
+    log['checksum_filtered'] = t.extract_text.rcdata.sum
   end
 
   def ignore_tree(tree, config=@config)
@@ -349,12 +350,12 @@ class Entry
     end
 
     t = tree.filter_with_path {|e, path|
-      not ( 
-        (HTree::Elem === e && (e.tagname == 'style' ||
-                               e.tagname == 'script')) ||
+      not (
+        (HTree::Elem === e && (e.name == 'style' ||
+                               e.name == 'script')) ||
         ignore_pattern =~ path ||
-        (HTree::Elem === e && (ignore_class.include?(e.stag.fetch_attribute_text('class', nil)) ||
-                               ignore_id.include?(e.stag.fetch_attribute_text('id', nil))))
+        (HTree::Elem === e && (ignore_class.include?(e.get_attr('class')) ||
+                               ignore_id.include?(e.get_attr('id'))))
       )
     }
 
@@ -501,12 +502,12 @@ class Entry
   def extract_html_update_info_rec(elt, result, base_uri_cell)
     hrefs = []
 
-    if HTree::Elem === elt && elt.tagname == 'base'
-      if href = elt.stag.fetch_attribute_text('href', nil)
+    if HTree::Elem === elt && elt.name == 'base'
+      if href = elt.get_attr('href')
         base_uri_cell[0] = URI.parse(href)
       end
-    elsif HTree::Elem === elt && elt.tagname == 'a'
-      if href = elt.stag.fetch_attribute_text('href', nil)
+    elsif HTree::Elem === elt && elt.name == 'a'
+      if href = elt.get_attr('href')
         href = (base_uri_cell[0] + URI.parse(href)).to_s
         hrefs << href if ENTRIES[href]
       end
@@ -519,7 +520,7 @@ class Entry
 
     hrefs.uniq!
 
-    if HTree::Elem === elt && elt.tagname == @config.fetch('UpdateElement', 'a')
+    if HTree::Elem === elt && elt.name == @config.fetch('UpdateElement', 'a')
       hrefs.each {|uri|
         result[uri] ||= []
         result[uri] << elt
@@ -550,8 +551,8 @@ class Entry
 
     (old_info.keys & new_info.keys).each {|uri|
       count_interest += 1
-      old_str = old_info[uri].map {|elt| elt.text }.join
-      new_str = new_info[uri].map {|elt| elt.text }.join
+      old_str = old_info[uri].map {|elt| elt.extract_text }.join
+      new_str = new_info[uri].map {|elt| elt.extract_text }.join
       if old_str != new_str
         #pp [uri, old_info[uri]]
         #pp [uri, new_info[uri]]
@@ -877,16 +878,16 @@ class Entry
 
     text1 = []
     tree1.traverse_with_path {|n, path|
-      text1 << [n.text, path] if HTree::Text === n
+      text1 << [n.to_s, path] if HTree::Text === n
     }
 
     text2 = []
     tree2.traverse_with_path {|n, path|
-      text2 << [n.text, path] if HTree::Text === n
+      text2 << [n.to_s, path] if HTree::Text === n
     }
 
-    puts "checksum1: #{tree1.rcdata.sum} #{checksum_filter1.inspect} #{filename1}"
-    puts "checksum2: #{tree2.rcdata.sum} #{checksum_filter2.inspect} #{filename2}"
+    puts "checksum1: #{tree1.extract_text.to_s.sum} #{checksum_filter1.inspect} #{filename1}"
+    puts "checksum2: #{tree2.extract_text.to_s.sum} #{checksum_filter2.inspect} #{filename2}"
 
     [text1.length, text2.length].min.times {
       t1, p1 = text1.last
@@ -1313,18 +1314,22 @@ class Samidare
           entries.map {|entry| entry.presentation_data }.sort_by {|h|
             # [h['last-modified'], h['title']]
             if h['last-modified-found']
-              [1, h['last-modified-found'], h['last-modified'], h['title']]
+              [2, h['last-modified-found'], h['last-modified'], h['title']]
+            elsif h['last-modified']
+              [1, h['last-modified'], h['title']]
             else
-              [0, h['last-modified'], h['title']]
+              [0, h['title']]
             end
           }.reverse,
           "update_info" =>
           update_infos.map {|update_info| update_info.presentation_data }.sort_by {|h|
             # [h['last-modified'], h['title']]
             if h['last-modified-found']
-              [1, h['last-modified-found'], h['last-modified'], h['title']]
+              [2, h['last-modified-found'], h['last-modified'], h['title']]
+            elsif h['last-modified']
+              [1, h['last-modified'], h['title']]
             else
-              [0, h['last-modified'], h['title']]
+              [0, h['title']]
             end
           }.reverse
         }
