@@ -82,8 +82,12 @@ module HTree
       }
     end
 
-    def traverse_element
-      self.traverse {|e| yield e if Elem === e }
+    def traverse_element(name=nil)
+      if name
+        self.traverse {|e| yield e if Elem === e && e.tagname == name }
+      else
+        self.traverse {|e| yield e if Elem === e }
+      end
     end
 
     def traverse_with_path

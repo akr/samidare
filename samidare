@@ -221,6 +221,18 @@ class Entry
       t = HTree.parse(content.decode_charset(content_charset))
       log['extractedTitle'] = t.title
 
+      t.traverse_element("meta") {|e|
+        begin
+          next unless e.stag.fetch_attribute_text("name").downcase == "author"
+          author = e.stag.fetch_attribute_text("content")
+          if !author.empty?
+            log['extractedAuthor'] = author
+            break
+          end
+        rescue IndexError
+        end
+      }
+
       if ignore_path = @config['IgnorePath']
         ignore_path = ignore_path.split(/\s+/)
       else
@@ -541,6 +553,7 @@ class Entry
     log = @hash['_log']
     h.update @hash # xxx
     h['title'] = h['Title']
+    h['author'] = h['Author']
     h['last-modified'] = '- no log -'
     unless log.empty?
       if l = find_first_200_with_current_content
@@ -559,6 +572,7 @@ class Entry
           h['last-modified'] = l['clientDateBeg'].getlocal.iso8601 + '[NoLM]'
         end
         h['title'] ||= l['extractedTitle'] if l['extractedTitle']
+        h['author'] ||= l['extractedAuthor'] if l['extractedAuthor']
       else
         l = log.last
         if l['status']
@@ -720,7 +734,7 @@ class Webpecker
 
   def generate_output(data)
     data = deep_copy(data)
-    result = XTemplate::XMLTemplate.new(File.read(@opt_template)).expand(data)
+    result = XTemplate::XMLTemplate.new(File.read(@opt_template).decode_charset_guess).expand(data)
     result.gsub!(/&apos;/, "'")
     if @opt_output != '-'
       dir = File.dirname @opt_output
