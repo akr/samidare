@@ -1363,19 +1363,18 @@ class Samidare
 end
 
 class Hash
-  def pretty_print(pp)
-    pp.group(1, '{', '}') {
+  def pretty_print(q)
+    q.group(1, '{', '}') {
       keys = self.keys
       keys.sort! if keys.all? {|k| String === k }
-      keys.each {|k|
+      q.seplist(keys) {|k|
         v = self[k]
-        pp.comma_breakable unless pp.first?
-        pp.group {
-          pp.pp k
-          pp.text '=>'
-          pp.group(1) {
-            pp.breakable ''
-            pp.pp v
+        q.group {
+          q.pp k
+          q.text '=>'
+          q.group(1) {
+            q.breakable ''
+            q.pp v
           }
         }
       }
