@@ -846,8 +846,8 @@ class Samidare
     entries = []
     config.each {|config_ent|
       uri = config_ent['URI']
-      log = logs[uri] || []
-      status_ent = { 'URI' => uri, '_log' => log }
+      logseq = logs[uri] || []
+      status_ent = { 'URI' => uri, '_log' => logseq }
       status << status_ent unless readonly
       entries << Entry.new(status_ent, config_ent)
     }
@@ -865,7 +865,7 @@ class Samidare
     readonly = @opt_timing || @opt_dont_check || @opt_dump_status || @opt_dump_template_data
     open_status(readonly) {|status|
       if @opt_remove_entry
-        status.reject! {|h| ARGV.include? h['URI'] } #xx: LinkURI, etc.
+        status.reject! {|h| ARGV.include? h['URI'] } #xxx: LinkURI, etc.
       elsif @opt_dump_status
         dump_status(status)
       else
