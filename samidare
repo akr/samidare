@@ -718,18 +718,19 @@ class Entry
         h['title'] ||= l['extractedTitle'] if l['extractedTitle']
         h['author'] ||= l['extractedAuthor'] if l['extractedAuthor']
         h['linkURI'] ||= l['extractedLinkURI'] if l['extractedLinkURI']
-      else
+      end
+      if StatusMap[logseq.last['status']] == 'e'
         l = logseq.last
         if l['status']
           if l['statusMessage']
-            h['last-modified'] = "- #{l['status']} #{l['statusMessage']} -"
+            h['info'] << "[#{l['status']} #{l['statusMessage']}]"
           else
-            h['last-modified'] = "- #{l['status']} -"
+            h['info'] = "[#{l['status']}]"
           end
         elsif l['trouble']
-          h['last-modified'] = "- #{l['trouble']} -"
+          h['info'] = "[#{l['trouble']}]"
         else
-          h['last-modified'] = '- no status -'
+          h['info'] = '[no status]'
         end
       end
     end
