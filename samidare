@@ -277,6 +277,7 @@ class Entry
     h['last-modified'] = '- no log -'
     unless log.empty?
       if l = find_first_200
+        h['last-modified-found'] = l['clientDateBeg'] # xxx: clientDateEnd is better?
         if l.include? 'lastModifiedString'
           h['last-modified'] = Time.httpdate(l['lastModifiedString']).localtime.iso8601
         else
@@ -576,7 +577,14 @@ class Webpecker
         entries.reject! {|entry| entry.update_info? }
         data = {
           "antenna" =>
-          entries.map {|entry| entry.presentation_data }.sort_by {|e| [e['last-modified'], e['title']] }.reverse
+          entries.map {|entry| entry.presentation_data }.sort_by {|h|
+            # [h['last-modified'], h['title']]
+            if h['last-modified-found']
+              [1, h['last-modified-found'], h['last-modified'], h['title']]
+            else
+              [0, h['last-modified'], h['title']]
+            end
+          }.reverse
         }
         generate_output(data)
       end
