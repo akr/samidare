@@ -82,6 +82,10 @@ module HTree
       }
     end
 
+    def traverse_element
+      self.traverse {|e| yield e if Elem === e }
+    end
+
     def traverse_with_path
       yield self, '/'
       self.each_with_path('') {|elt, path|
