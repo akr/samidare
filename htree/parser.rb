@@ -148,7 +148,7 @@ module HTree
     result
   end
 
-  def HTree.fix_elem(elem, possible_sibling_tags, forbidden_tags, additional_tags)
+  def HTree.fix_elem(elem, possible_sibling_tags, excluded_tags, included_tags)
     if elem.empty_element?
       return elem, []
     elsif elem.etag
@@ -159,19 +159,19 @@ module HTree
         return Elem.new(elem.stag), elem.elts
       else
         possible_tags = ElementContent[tagname]
-        forbidden_tags2 = ElementExclusions[tagname] || []
-        additional_tags2 = ElementInclusions[tagname] || []
+        excluded_tags2 = ElementExclusions[tagname] || []
+        included_tags2 = ElementInclusions[tagname] || []
         possible_tags = possible_sibling_tags unless possible_tags
-        forbidden_tags |= forbidden_tags2 if forbidden_tags2
-        additional_tags |= additional_tags2 if additional_tags2
-        containable_tags = (possible_tags | additional_tags) - forbidden_tags
+        excluded_tags |= excluded_tags2 if excluded_tags2
+        included_tags |= included_tags2 if included_tags2
+        containable_tags = (possible_tags | included_tags) - excluded_tags
         fixed_elts = []
         rest = elem.elts.dup
         until rest.empty?
           elt = rest.shift
           if Elem === elt
             if containable_tags.include? elt.tagname
-              elt, rest2 = fix_elem(elt, possible_tags, forbidden_tags, additional_tags)
+              elt, rest2 = fix_elem(elt, possible_tags, excluded_tags, included_tags)
               fixed_elts << elt
               rest = rest2 + rest
             else
