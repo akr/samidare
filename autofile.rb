@@ -83,15 +83,15 @@ class AutoFile
       filename_hint = $`
     end
 
-    if content_type == 'text/html'
-      ext = '.html'
-    elsif /\ALIRS/i =~ initial_content
+    if /\ALIRS/i =~ initial_content
       ext = '.lirs'
     elsif /<!DOCTYPE rss|\A<rss /i =~ initial_content
       ext = '.rss'
-    elsif /<rdf:RDF/i =~ initial_content
+    elsif /<!DOCTYPE rdf:RDF|<rdf:RDF/i =~ initial_content
       ext = '.rdf'
     elsif /<html|<!DOCTYPE HTML/i =~ initial_content
+      ext = '.html'
+    elsif content_type == 'text/html'
       ext = '.html'
     elsif /\A<\?xml/i =~ initial_content
       ext = '.xml'
