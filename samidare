@@ -353,7 +353,7 @@ class Entry
               if e.find_last_success['clientDateEnd'] < t2 #xxx: not so acculate.
                 count_update += 1
                 p [:LIRS_UPDATE, uri, t1, t2, @config['URI']]
-                ENTRIES[uri].status['_update_info'] = true
+                e.status['_update_info'] = true
               end
             end
           }
@@ -363,6 +363,7 @@ class Entry
     rescue
       # External update information is a just hint.
       # So it is ignorable even if it has some trouble.
+      STDERR.puts "check_lirs: error on #{@config['URI']}: #$!"
     end
   end
 
@@ -436,20 +437,25 @@ class Entry
     STDERR.puts "HTML total: #{count_update} / #{count_interest} - #{@config['URI']}" if $VERBOSE
   end
 
-  # xxx: rescue
   def check_html(new_log=nil)
-    if new_log
-      old_log = find_last_200
-    else
-      new_log = find_last_200
-      old_log = find_last_200_with_previous_content
-    end
-    extract_html_update_info(old_log, new_log) {|uri|
-      ENTRIES[uri].each {|e|
-        p [:HTML_UPDATE, e.uri, @config['URI']]
-        e.status['_update_info'] = true
+    begin
+      if new_log
+        old_log = find_last_200
+      else
+        new_log = find_last_200
+        old_log = find_last_200_with_previous_content
+      end
+      extract_html_update_info(old_log, new_log) {|uri|
+        ENTRIES[uri].each {|e|
+          p [:HTML_UPDATE, e.uri, @config['URI']]
+          e.status['_update_info'] = true
+        }
       }
-    }
+    rescue
+      # External update information is a just hint.
+      # So it is ignorable even if it has some trouble.
+      STDERR.puts "check_html error on #{@config['URI']}: #$!"
+    end
   end
 
   StatusMap = {
