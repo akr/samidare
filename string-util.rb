@@ -3,7 +3,7 @@ require 'stringio'
 
 class String
   def decode_gzip
-    Zlib::GzipReader.new(StringIO.new(self)).read
+    Zlib::GzipReader.new(StringIO.new(self)).read || ""
   end
 
   def encode_gzip
