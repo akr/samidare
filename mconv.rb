@@ -12,6 +12,10 @@ module Mconv
     end
   end
 
+  def Mconv.valid_charset?(str)
+    /\A(us-ascii|iso-2022-jp|euc-jp|shift_jis|utf-8|iso-8859-1)\z/i =~ str
+  end
+
   def Mconv.conv(str, to, from)
     ic = Iconv.new(to, from)
 
