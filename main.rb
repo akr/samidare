@@ -164,13 +164,16 @@ class Entry
     page, meta = fetch(log)
     log['clientDateEnd'] = client_date_2 = Time.now
     if $VERBOSE
-      STDERR.puts "#{client_date_2.iso8601} fetch end #{log['trouble'] || "#{log['status']} #{log['statusMessage']}"} #{uri}"
-      if log['trouble'] && log['backtrace']
-        STDERR.puts "|#{client_date_2.iso8601} ERROR: #{log['trouble']} (#{log['exception_class']})"
-        log['backtrace'].each {|pos|
-          STDERR.puts "| #{pos}"
-        }
+      if log['trouble']
+        STDERR.puts "#{client_date_2.iso8601} fetch end ERROR: #{log['trouble']} #{uri}"
+        if log['backtrace']
+          STDERR.puts "|#{client_date_2.iso8601} ERROR: #{log['trouble']} (#{log['exception_class']}) #{uri}"
+          log['backtrace'].each {|pos| STDERR.puts "| #{pos}" }
+        end
+      else
+        STDERR.puts "#{client_date_2.iso8601} fetch end #{log['status']} #{log['statusMessage']} #{uri}"
       end
+
     end
 
     begin
@@ -229,7 +232,7 @@ class Entry
       end
     rescue StandardError, TimeoutError
       trouble = $!.message
-      backtrace = $!.backtrace
+      backtrace = $!.backtrace unless TimeoutError === $!
       exception_class = $!.class.name
     end
 
