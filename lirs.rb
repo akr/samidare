@@ -1,5 +1,3 @@
-require 'zlib'
-
 class LIRS
   RecordHeader = 'LIRS'
 
