@@ -746,6 +746,9 @@ class Entry
           h['last-modified'] = l['clientDateBeg'].getlocal
           h['info'] << '[NoLM]'
         end
+        if l.include? 'baseURI'
+          h['info'] << '[Redirect]'
+        end
         h['title'] ||= l['extractedTitle'] if l['extractedTitle']
         h['author'] ||= l['extractedAuthor'] if l['extractedAuthor']
         h['linkURI'] ||= l['extractedLinkURI'] if l['extractedLinkURI']
