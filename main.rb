@@ -362,7 +362,7 @@ class Entry
         (HTree::Elem === e && (%r[\A(?:\{http://www.w3.org/1999/xhtml\})?style\z] =~ e.name ||
                                %r[\A(?:\{http://www.w3.org/1999/xhtml\})?script\z] =~ e.name)) ||
         ignore_pattern =~ path ||
-        (HTree::Elem === e && (ignore_class.include?(e.get_attr('class')) ||
+        (HTree::Elem === e && ((cs = e.get_attr('class') and ignore_class & cs.split(/\s+/) != []) ||
                                ignore_id.include?(e.get_attr('id'))))
       )
     }
