@@ -1,0 +1,50 @@
+#!/usr/bin/env ruby
+
+$KCODE = 'e'
+
+require 'htree'
+require 'tempfile'
+
+def path2pattern(*paths)
+  /\A#{Regexp.alt *paths.map {|path|
+    Regexp.new(path.gsub(%r{[^/]+}) {|step|
+      if /\[\d+\]\z/ =~ step
+        Regexp.quote(step)
+      else
+        Regexp.quote(step) + '(\[\d+\])?'
+      end
+    }.gsub(%r{//+}) {
+      "/(?:[^/]+/)*"
+    })
+  }}\z/
+end
+
+filename1, *ignore_path = ARGV
+
+ignore_path.each {|path| puts path }
+
+tree1 = HTree.parse(File.read(filename1).decode_charset_guess)
+
+ignore_pattern = path2pattern(*ignore_path)
+p ignore_pattern
+
+pred = lambda {|e, path|
+  p path if ignore_pattern === path
+  not (
+    #(HTree::Elem === e && (e.tagname == 'style' ||
+    #                       e.tagname == 'script')) ||
+    ignore_pattern === path
+  )
+}
+
+tree2 = tree1.filter_with_path(&pred)
+
+tf1 = Tempfile.new('htmldiff1')
+PP.pp(tree1, tf1)
+tf1.close
+
+tf2 = Tempfile.new('htmldiff2')
+PP.pp(tree2, tf2)
+tf2.close
+
+system("diff -u #{tf1.path} #{tf2.path}")

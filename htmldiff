@@ -1,0 +1,72 @@
+#!/usr/bin/env ruby
+
+$KCODE = 'e'
+
+require 'htree'
+require 'tempfile'
+
+def path2pattern(*paths)
+  /\A#{Regexp.alt *paths.map {|path|
+    Regexp.new(path.gsub(%r{[^/]+}) {|step|
+      if /\[\d+\]\z/ =~ step
+        Regexp.quote(step)
+      else
+        Regexp.quote(step) + '(\[\d+\])?'
+      end
+    }.gsub(%r{//+}) {
+      "/(?:[^/]+/)*"
+    })
+  }}\z/
+end
+
+
+filename1, filename2, *ignore_path = ARGV
+
+ignore_path.each {|path| puts path }
+
+tree1 = HTree.parse(File.read(filename1).decode_charset_guess)
+tree2 = HTree.parse(File.read(filename2).decode_charset_guess)
+
+ignore_pattern = path2pattern(*ignore_path)
+
+pred = lambda {|e, path|
+  not (
+    (HTree::Elem === e && (e.tagname == 'style' ||
+                           e.tagname == 'script')) ||
+    ignore_pattern === path
+  )
+}
+
+tree1 = tree1.filter_with_path(&pred)
+tree2 = tree2.filter_with_path(&pred)
+
+text1 = []
+tree1.traverse_with_path {|n, path|
+  text1 << [n.text, path] if HTree::Text === n
+}
+
+text2 = []
+tree2.traverse_with_path {|n, path|
+  text2 << [n.text, path] if HTree::Text === n
+}
+
+num = 10
+0.upto([text1.length, text2.length].max - 1) {|i|
+  t1, p1 = text1[i]
+  t2, p2 = text2[i]
+  if t1.gsub(/\s+/, '') != t2.gsub(/\s+/, '')
+    pp [text1[i], text2[i]]
+    num -= 1
+    break if num == 0
+  end
+}
+
+tf1 = Tempfile.new('htmldiff1')
+PP.pp(tree1, tf1)
+tf1.close
+
+tf2 = Tempfile.new('htmldiff2')
+PP.pp(tree2, tf2)
+tf2.close
+
+system("diff -u #{tf1.path} #{tf2.path}")
