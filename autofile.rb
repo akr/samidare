@@ -57,6 +57,10 @@ class AutoFile
     File.join(AutoFile.directory, @filename)
   end
 
+  def exist?
+    File.exist? File.join(AutoFile.directory, @filename)
+  end
+
   def content
     File.read(File.join(AutoFile.directory, @filename))
   end
