@@ -166,7 +166,7 @@ class Entry
     if $VERBOSE
       STDERR.puts "#{client_date_2.iso8601} fetch end #{log['trouble'] || "#{log['status']} #{log['statusMessage']}"} #{uri}"
       if log['trouble'] && log['backtrace']
-        STDERR.puts "| #{log['trouble']}"
+        STDERR.puts "|#{client_date_2.iso8601} ERROR: #{log['trouble']}"
         log['backtrace'].each {|pos|
           STDERR.puts "| #{pos}"
         }
