@@ -301,7 +301,7 @@ class Entry
       return
     end
 
-    t = HTree.parse_html(decoded_content)
+    t = HTree.parse(decoded_content)
 
     title = t.title
     log['extractedTitle'] = title if title
@@ -551,7 +551,7 @@ class Entry
       return {}
     end
     content = content.decode_charset(log['contentCharset'])
-    tree = HTree.parse_html(content)
+    tree = HTree.parse(content)
     tree, checksum_filter = ignore_tree(tree, log)
     base_uri = URI.parse(log['baseURI'] || log['URI'])
     extract_html_update_info_rec(tree, info={}, [base_uri])
@@ -889,8 +889,8 @@ class Entry
     return unless log1 && log2
     filename1 = log1['content'].pathname
     filename2 = log2['content'].pathname
-    tree1, checksum_filter1 = ignore_tree(HTree.parse_html(File.read(filename1).decode_charset_guess), log1)
-    tree2, checksum_filter2 = ignore_tree(HTree.parse_html(File.read(filename2).decode_charset_guess), log2)
+    tree1, checksum_filter1 = ignore_tree(HTree.parse(File.read(filename1).decode_charset_guess), log1)
+    tree2, checksum_filter2 = ignore_tree(HTree.parse(File.read(filename2).decode_charset_guess), log2)
 
     text1 = []
     tree1.traverse_with_path {|n, path|
