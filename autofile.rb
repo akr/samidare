@@ -53,6 +53,10 @@ class AutoFile
   end
   attr_reader :filename
 
+  def pathname
+    File.join(AutoFile.directory, @filename)
+  end
+
   def content
     File.read(File.join(AutoFile.directory, @filename))
   end

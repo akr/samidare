@@ -954,6 +954,7 @@ class Samidare
     @opt_dump_template_data = nil
     @opt_template = TEMPLATE_LATEST_FILENAME
     @opt_remove_entry = nil
+    @opt_dump_filenames = nil
     ARGV.options {|q|
       q.banner = 'webpecker [opts]'
       q.def_option('--help', 'show this message') {puts q; exit(0)}
@@ -967,6 +968,7 @@ class Samidare
       q.def_option('--dump-config', 'dump flatten configuration') { @opt_dump_config = true }
       q.def_option('--dump-status', 'dump status') { @opt_dump_status = true }
       q.def_option('--dump-template-data', 'dump data for expand template') { @opt_dump_template_data = true }
+      q.def_option('--dump-filenames', 'dump filenames of specified entry') { @opt_dump_filenames = true }
       q.def_option('--remove-entry', 'remove entry') { @opt_remove_entry = true }
       q.def_option('--single-thread', 'diable multi-threading') { $opt_max_threads = 1 }
       q.parse!
@@ -987,6 +989,20 @@ class Samidare
         end
       }
     end
+  end
+
+  def dump_filenames(status, entries)
+    entries.each {|ent|
+      unless (ARGV & ent.related_uris).empty?
+        if logseq = ent.status['_log']
+          logseq.each {|log|
+            if content = log['content']
+              puts content.pathname
+            end
+          }
+        end
+      end
+    }
   end
 
   def create_entries(config, status, readonly=false)
@@ -1018,11 +1034,13 @@ class Samidare
       return
     end
     data = nil
-    readonly = @opt_timing || @opt_dont_check || @opt_dump_status || @opt_dump_template_data
+    readonly = @opt_timing || @opt_dont_check || @opt_dump_status || @opt_dump_template_data || @opt_dump_filenames
     open_status(readonly) {|status|
       entries = create_entries(config, status, readonly)
       if @opt_dump_status
         dump_status(status, entries)
+      elsif @opt_dump_filenames
+        dump_filenames(status, entries)
       elsif @opt_timing
         entries = entries.map {|entry|
           [entry.next_timing.localtime, entry]
