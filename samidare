@@ -92,7 +92,7 @@ class Entry
     intervals = []
     prev = nil
     periodical.each {|curr|
-      intervals << curr - prev if prev
+      intervals << curr - prev if prev && prev < curr
       prev = curr
     }
     t = last_modified + intervals.min
@@ -981,7 +981,10 @@ class Samidare
       }
     else
       entries.each {|ent|
-        pp ent.status unless (ARGV & ent.related_uris).empty?
+        unless (ARGV & ent.related_uris).empty?
+          pp ent.status
+          puts "next time: #{ent.next_timing.localtime}"
+        end
       }
     end
   end
