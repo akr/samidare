@@ -502,17 +502,18 @@ class Entry
   def extract_html_update_info_rec(elt, result, base_uri_cell)
     hrefs = []
 
-    if HTree::Elem === elt && elt.name == 'base'
+    p elt.name if HTree::Elem === elt
+    if HTree::Elem === elt && %r[\A(?:\{http://www.w3.org/1999/xhtml\})?base\z] =~ elt.name
       if href = elt.get_attr('href')
         base_uri_cell[0] = URI.parse(href)
       end
-    elsif HTree::Elem === elt && elt.name == 'a'
+    elsif HTree::Elem === elt && %r[\A(?:\{http://www.w3.org/1999/xhtml\})?a\z] =~ elt.name
       if href = elt.get_attr('href')
         href = (base_uri_cell[0] + URI.parse(href)).to_s
         hrefs << href if ENTRIES[href]
       end
     else
-      elt.each {|e|
+      elt.children.each {|e|
         next unless HTree::Elem === e
         hrefs.concat extract_html_update_info_rec(e, result, base_uri_cell)
       }
@@ -536,7 +537,7 @@ class Entry
     content = log['content'].content
     content = content.decode_charset(log['contentCharset'])
     tree = HTree.parse(content)
-    tree = ignore_tree(tree, log)
+    tree, checksum_filter = ignore_tree(tree, log)
     base_uri = URI.parse(log['baseURI'] || log['URI'])
     extract_html_update_info_rec(tree, info={}, [base_uri])
     info
