@@ -9,7 +9,7 @@ def Regexp.alt(*args)
   end
 end
 
-class HTree
+module HTree
   module Pat
     Name = %r{[A-Za-z_:][-A-Za-z0-9._:]*}
     DocType = %r{<!DOCTYPE.*?>}m
@@ -478,7 +478,7 @@ class HTree
     'html' => [%w[head body frameset]],
     '/' => [%w[html]]
   }
-  OmissibleTags = %w[body tbody head html]
+  OmissibleTags = %w[tbody body head html]
   TagInfo.each {|tag, (children,)|
     ootags = children & OmissibleTags
     unless ootags.empty?
