@@ -29,9 +29,12 @@ module HTree
   end
 
   module Container
+    include Node
+
     def init_container(elts)
       @elts = elts
     end
+    attr_reader :elts
 
     def each
       return unless @elts
@@ -95,7 +98,6 @@ module HTree
   end
 
   class Doc
-    include Node 
     include Container
 
     def initialize(elts)
@@ -210,7 +212,6 @@ module HTree
   end
 
   class Elem
-    include Node
     include Container
 
     def initialize(stag, elts=nil, etag=nil)
@@ -219,7 +220,7 @@ module HTree
       @etag = etag
       init_container(elts) #xxx elts may be nil
     end
-    attr_reader :stag, :elts, :etag
+    attr_reader :stag, :etag
 
     def empty_element?
       @elts == nil
