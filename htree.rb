@@ -43,6 +43,7 @@ End
       pp HTree.parse(str)
     else
       ARGV.each {|filename|
+        p filename
         str = File.read(filename)
         str = str.decode_charset(str.guess_charset)
         pp HTree.parse(str)

@@ -6,22 +6,32 @@ module HTree
 
     DocType = /<!DOCTYPE.*?>/m
     ProcIns = /<\?.*?>/m
-    Comment = /<!--.*?-->/m
-    CDATA = /<!\[CDATA\[.*?\]\]>/m
+    Comment_C = /<!--(.*?)-->/m
+    Comment = Comment_C.disable_capture
+    CDATA_C = /<!\[CDATA\[(.*?)\]\]>/m
+    CDATA = CDATA_C.disable_capture
 
-    ValidAttr = /#{Name}(?:\s*=\s*(?:"[^"]*"|'[^']*'|[-A-Za-z._:]*))?/
-    InvalidAttr1 = /#{Name}(?:\s*=\s*(?:'[^'<>]*'|"[^"<>]*"|[^\s<>"']*))?/
-    InvalidAttr1End = /#{Name}(?:\s*=\s*(?:'[^'<>]*|"[^"<>]*))/
+    ValidAttr_C = /(#{Name})(\s*=\s*(?:"([^"]*)"|'([^']*)'|([-A-Za-z._:]*)))?/
+    ValidAttr = ValidAttr_C.disable_capture
+    InvalidAttr1_C = /(#{Name})(\s*=\s*(?:'([^'<>]*)'|"([^"<>]*)"|([^\s<>"']*)))?/
+    InvalidAttr1 = InvalidAttr1_C.disable_capture
+    InvalidAttr1End_C = /(#{Name})(\s*=\s*(?:'([^'<>]*)|"([^"<>]*)))/
+    InvalidAttr1End = InvalidAttr1End_C.disable_capture
 
-    ValidStartTag = /<#{Name}(?:\s+#{ValidAttr})*\s*>/
-    InvalidStartTag = /<#{Name}(?:(?:\b|\s+)#{InvalidAttr1})*(?:(?:\b|\s+)#{InvalidAttr1End})?\s*>/
+    ValidStartTag_C = /<(#{Name})((?:\s+#{ValidAttr})*)\s*>/
+    ValidStartTag = ValidStartTag_C.disable_capture
+    InvalidStartTag_C = /<(#{Name})((?:(?:\b|\s+)#{InvalidAttr1})*)((?:\b|\s+)#{InvalidAttr1End})?\s*>/
+    InvalidStartTag = InvalidStartTag_C.disable_capture
     StartTag = /#{ValidStartTag}|#{InvalidStartTag}/
 
-    ValidEmptyTag = %r{<#{Name}(?:\s+#{ValidAttr})*\s*/>}
-    InvalidEmptyTag = %r{<#{Name}(?:(?:\b|\s+)#{InvalidAttr1})*(?:(?:\b|\s+)#{InvalidAttr1End})?\s*/>}
+    ValidEmptyTag_C = %r{<(#{Name})((?:\s+#{ValidAttr})*)\s*/>}
+    ValidEmptyTag = ValidEmptyTag_C.disable_capture
+    InvalidEmptyTag_C = %r{<(#{Name})((?:(?:\b|\s+)#{InvalidAttr1})*)((?:\b|\s+)#{InvalidAttr1End})?\s*/>}
+    InvalidEmptyTag = InvalidEmptyTag_C.disable_capture
     EmptyTag = /#{ValidEmptyTag}|#{InvalidEmptyTag}/
 
-    EndTag = %r{</#{Name}\s*>}
+    EndTag_C = %r{</(#{Name})\s*>}
+    EndTag = EndTag_C.disable_capture
 
     XmlVersionNum = /[a-zA-Z0-9_.:-]+/
     XmlVersionInfo = /\s+version\s*=\s*(?:'#{XmlVersionNum}'|"#{XmlVersionNum}")/

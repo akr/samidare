@@ -115,5 +115,9 @@ class String
   def guess_charset
     Mconv.guess_charset(self)
   end
+
+  def decode_charset_guess
+    decode_charset(guess_charset)
+  end
 end
 

@@ -3,20 +3,23 @@ require 'pp'
 require 'htree/html'
 
 module HTree
+  def HTree.decode_rcdata(str)
+    str.gsub(/&(?:#([0-9]+)|#x([0-9a-fA-F]+)|([A-Za-z][A-Za-z0-9]*));/o) {|s|
+      u = nil
+      if $1
+        u = $1.to_i
+      elsif $2
+        u = $2.hex
+      elsif $3
+        u = NamedCharacters[$3]
+      end
+      u && 0 <= u && u <= 0x7fffffff ? [u].pack("U").decode_charset('UTF-8') : '?'
+    }
+  end
+
   module Node
     def text 
-      str = self.rcdata
-      str.gsub(/&(?:#([0-9]+)|#x([0-9a-fA-F]+)|([A-Za-z][A-Za-z0-9]*));/o) {|s|
-        u = nil
-        if $1
-          u = $1.to_i
-        elsif $2
-          u = $2.hex
-        elsif $3
-          u = NamedCharacters[$3]
-        end
-        u && 0 <= u && u <= 0x7fffffff ? [u].pack("U").decode_charset('UTF-8') : '?'
-      }
+      HTree.decode_rcdata(self.rcdata)
     end
 
     QuoteHash = { '<'=>'&lt;', '>'=> '&gt;' }
@@ -45,6 +48,13 @@ module HTree
       nil
     end
 =end
+
+    def each_node
+      yield self
+      @elts.each {|elt|
+        elt.each_node {|e| yield e }
+      }
+    end
 
     def each_element(name=nil)
       @elts.each {|elt|
@@ -92,6 +102,13 @@ module HTree
       @stag.tagname
     end
 
+    def each_node
+      yield self
+      @elts.each {|elt|
+        elt.each_node {|e| yield e }
+      }
+    end
+
     def each_element(name=nil)
       yield self if name == nil || self.tagname == name
       @elts.each {|elt|
@@ -134,6 +151,10 @@ module HTree
       @tag.tagname
     end
 
+    def each_node
+      yield self
+    end
+
     def each_element(name=nil)
       yield self if name == nil || self.tagname == name
     end
@@ -159,6 +180,10 @@ module HTree
     end
 
     def raw_string; @str; end
+
+    def each_node
+      yield self
+    end
 
     def pretty_print(pp)
       pp.group(1, '{', '}') {

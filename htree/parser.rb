@@ -10,7 +10,7 @@ module HTree
     }
     elts = parse_pairs(elts)
     elts.each_with_index {|elt, i|
-      if Elem === elt && !elt.etag
+      if Elem === elt && !elt.etag && elt.stag.tagname == 'html'
         elts[i] = Elem.new(elt.stag, elt.elts, true)
       end
     }
