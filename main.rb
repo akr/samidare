@@ -361,11 +361,11 @@ class Entry
       path = e.path.sub(%r{^doc\(\)}, '')
       e = e.to_node
       not (
-        (HTree::Elem === e && (%r[\A(?:\{http://www.w3.org/1999/xhtml\})?style\z] =~ e.name ||
-                               %r[\A(?:\{http://www.w3.org/1999/xhtml\})?script\z] =~ e.name)) ||
+        (e.elem? && (%r[\A(?:\{http://www.w3.org/1999/xhtml\})?style\z] =~ e.name ||
+                     %r[\A(?:\{http://www.w3.org/1999/xhtml\})?script\z] =~ e.name)) ||
         ignore_pattern =~ path ||
-        (HTree::Elem === e && ((cs = e.get_attr('class') and ignore_class & cs.split(/\s+/) != []) ||
-                               ignore_id.include?(e.get_attr('id'))))
+        (e.elem? && ((cs = e.get_attr('class') and ignore_class & cs.split(/\s+/) != []) ||
+                     ignore_id.include?(e.get_attr('id'))))
       )
     }
 
@@ -515,25 +515,25 @@ class Entry
   def extract_html_update_info_rec(elt, result, base_uri_cell)
     hrefs = []
 
-    if HTree::Elem === elt && %r[\A(?:\{http://www.w3.org/1999/xhtml\})?base\z] =~ elt.name
+    if elt.elem? && %r[\A(?:\{http://www.w3.org/1999/xhtml\})?base\z] =~ elt.name
       if href = elt.get_attr('href')
         base_uri_cell[0] = URI.parse(href)
       end
-    elsif HTree::Elem === elt && %r[\A(?:\{http://www.w3.org/1999/xhtml\})?a\z] =~ elt.name
+    elsif elt.elem? && %r[\A(?:\{http://www.w3.org/1999/xhtml\})?a\z] =~ elt.name
       if href = elt.get_attr('href')
         href = (base_uri_cell[0] + URI.parse(href)).to_s
         hrefs << href if ENTRIES[href]
       end
     else
       elt.children.each {|e|
-        next unless HTree::Elem === e
+        next unless e.elem?
         hrefs.concat extract_html_update_info_rec(e, result, base_uri_cell)
       }
     end
 
     hrefs.uniq!
 
-    if HTree::Elem === elt && @config.fetch('UpdateElement', %r[\A(?:\{http://www.w3.org/1999/xhtml\})?a\z]) === elt.name
+    if elt.elem? && @config.fetch('UpdateElement', %r[\A(?:\{http://www.w3.org/1999/xhtml\})?a\z]) === elt.name
       hrefs.each {|uri|
         result[uri] ||= []
         result[uri] << elt
@@ -902,14 +902,14 @@ class Entry
     tree1.make_loc.traverse_element {|n|
       path = n.path.sub(%r{^doc\(\)}, '')
       n = n.to_node
-      text1 << [n.to_s, path] if HTree::Text === n
+      text1 << [n.to_s, path] if n.text?
     }
 
     text2 = []
     tree2.make_loc.traverse_element {|n|
       path = n.path.sub(%r{^doc\(\)}, '')
       n = n.to_node
-      text2 << [n.to_s, path] if HTree::Text === n
+      text2 << [n.to_s, path] if n.text?
     }
 
     puts "checksum1: #{tree1.extract_text.to_s.sum} #{checksum_filter1.inspect} #{filename1}"
