@@ -23,21 +23,18 @@ module HTree
       when /\A#{Pat::ValidStartTag_C}\z/o, /\A#{Pat::ValidEmptyTag_C}\z/o
         tagname = $1
         $2.scan(Pat::ValidAttr_C) {
-          name = $1.downcase
-          @attrs << ($2 ? [name, HTree.fix_character_reference($+)] : [nil, name])
+          @attrs << ($2 ? [$1.downcase, HTree.fix_character_reference($+)] : [nil, $1])
         }
       when /\A#{Pat::InvalidStartTag_C}\z/o, /\A#{Pat::InvalidEmptyTag_C}\z/o
         tagname = $1
         attrs = $2
         last_attr = $3
         attrs.scan(Pat::InvalidAttr1_C) {
-          name = $1.downcase
-          @attrs << ($2 ? [name, HTree.fix_character_reference($+)] : [nil, name])
+          @attrs << ($2 ? [$1.downcase, HTree.fix_character_reference($+)] : [nil, $1])
         }
         if last_attr
           /#{Pat::InvalidAttr1End_C}/ =~ last_attr
-          name = $1.downcase
-          @attrs << ($2 ? [name, HTree.fix_character_reference($+)] : [nil, name])
+          @attrs << ($2 ? [$1.downcase, HTree.fix_character_reference($+)] : [nil, $1])
         end
       else
         raise "unrecognized start tag format [bug]: #{@str.inspect}"
