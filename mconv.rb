@@ -95,6 +95,26 @@ module Mconv
     # xxx: needs more accurate guess
     count.keys.sort.first
   end
+
+  def Mconv.minimize_charset(charset, string)
+    if /\A(?:euc-jp|utf-8|iso-8859-1)\z/i =~ charset
+      if /\A[\x00-\x7f]*\z/ =~ string
+        charset = 'us-ascii'
+      end
+      return charset
+    end
+
+    begin
+      # round trip?
+      s2 = Iconv.conv(charset, 'us-ascii', Iconv.conv('us-ascii', charset, string))
+    rescue Iconv::Failure
+      return charset
+    end
+    if string == s2
+      charset = 'us-ascii'
+    end
+    charset
+  end
 end
 
 class String
