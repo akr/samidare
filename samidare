@@ -682,7 +682,8 @@ class Entry
 end
 
 module Enumerable
-  def concurrent_map(max_threads=8, &block)
+  $opt_max_threads = 8
+  def concurrent_map(max_threads=$opt_max_threads, &block)
     if max_threads == 1
       self.map(&block)
     else
@@ -859,6 +860,7 @@ class Samidare
       q.def_option('--dump-status', 'dump status') { @opt_dump_status = true }
       q.def_option('--dump-template-data', 'dump data for expand template') { @opt_dump_template_data = true }
       q.def_option('--remove-entry', 'remove entry') { @opt_remove_entry = true }
+      q.def_option('--single-thread', 'diable multi-threading') { $opt_max_threads = 1 }
       q.parse!
     }
   end
