@@ -2,7 +2,6 @@ require 'htree/regexp-util'
 
 class HTree
   class DTD
-
     def DTD.parse(str)
       dtd = DTD.new
       dtd.parse(str)
@@ -313,7 +312,7 @@ class HTree
         @inclusions = nil
         @exclusions = nil
       end
-      attr_reader :name
+      attr_reader :name, :attrs
       attr_accessor :omit_stag, :omit_etag, :content, :inclusions, :exclusions
 
       def define_attr(name, val, default)
@@ -337,12 +336,16 @@ end
 
 if $0 == __FILE__
   require 'pp'
-  html4_01_dir = ARGV.first || '.'
+  arg = ARGV.first || '.'
   dtd = HTree::DTD.new
-  dtd.parse(File.read("#{html4_01_dir}/HTMLlat1.ent"))
-  dtd.parse(File.read("#{html4_01_dir}/HTMLspecial.ent"))
-  dtd.parse(File.read("#{html4_01_dir}/HTMLsymbol.ent"))
-  dtd.parse(File.read("#{html4_01_dir}/loose.dtd"))
+  if FileTest.directory? arg
+    dtd.parse(File.read("#{arg}/HTMLlat1.ent"))
+    dtd.parse(File.read("#{arg}/HTMLspecial.ent"))
+    dtd.parse(File.read("#{arg}/HTMLsymbol.ent"))
+    dtd.parse(File.read("#{arg}/loose.dtd"))
+  else
+    dtd.parse(File.read(arg))
+  end
 
   ents = dtd.entites
   named_characters = {}
@@ -373,6 +376,20 @@ if $0 == __FILE__
   }
   element_exclusions.each {|k, v| v.instance_variable_set(:@mypp, true) }
   element_inclusions.each {|k, v| v.instance_variable_set(:@mypp, true) }
+
+  omitted_attr_name = {}
+  dtd.elements.each {|elem|
+    elem_name = elem.name
+    val2name = {}
+    elem.attrs.each {|attr_name, (val, default)|
+      next unless Array === val
+      val.each {|v|
+        val2name[v.downcase] = attr_name
+      }
+    }
+    omitted_attr_name[elem_name] = val2name
+  }
+  omitted_attr_name.each {|k, v| v.instance_variable_set(:@mypp, true) }
 
   class Array
     alias pretty_print1 pretty_print
@@ -438,6 +455,8 @@ module HTree
 #{PP.pp(element_inclusions, '')}
   ElementExclusions =
 #{PP.pp(element_exclusions, '')}
+  OmittedAttrName =
+#{PP.pp(omitted_attr_name, '')}
 end
 # The code above is auto-generated.  Don't edit manually.
 End

@@ -542,5 +542,177 @@ module HTree
    "noscript", "ol", "p", "pre", "table", "ul"],
  "label"=>["label"]}
 
+  OmittedAttrName =
+{"h6"=>
+  {"center"=>"align", "justify"=>"align", "left"=>"align", "ltr"=>"dir",
+   "right"=>"align", "rtl"=>"dir"},
+ "object"=>
+  {"bottom"=>"align", "declare"=>"declare", "left"=>"align", "ltr"=>"dir",
+   "middle"=>"align", "right"=>"align", "rtl"=>"dir", "top"=>"align"},
+ "dl"=>{"compact"=>"compact", "ltr"=>"dir", "rtl"=>"dir"},
+ "p"=>
+  {"center"=>"align", "justify"=>"align", "left"=>"align", "ltr"=>"dir",
+   "right"=>"align", "rtl"=>"dir"},
+ "acronym"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "code"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "ul"=>
+  {"circle"=>"type", "compact"=>"compact", "disc"=>"type", "ltr"=>"dir",
+   "rtl"=>"dir", "square"=>"type"},
+ "tt"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "label"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "form"=>{"get"=>"method", "ltr"=>"dir", "post"=>"method", "rtl"=>"dir"},
+ "q"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "thead"=>
+  {"baseline"=>"valign", "bottom"=>"valign", "center"=>"align",
+   "char"=>"align", "justify"=>"align", "left"=>"align", "ltr"=>"dir",
+   "middle"=>"valign", "right"=>"align", "rtl"=>"dir", "top"=>"valign"},
+ "area"=>
+  {"circle"=>"shape", "default"=>"shape", "ltr"=>"dir", "nohref"=>"nohref",
+   "poly"=>"shape", "rect"=>"shape", "rtl"=>"dir"},
+ "td"=>
+  {"baseline"=>"valign", "bottom"=>"valign", "center"=>"align",
+   "char"=>"align", "col"=>"scope", "colgroup"=>"scope", "justify"=>"align",
+   "left"=>"align", "ltr"=>"dir", "middle"=>"valign", "nowrap"=>"nowrap",
+   "right"=>"align", "row"=>"scope", "rowgroup"=>"scope", "rtl"=>"dir",
+   "top"=>"valign"},
+ "title"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "dir"=>{"compact"=>"compact", "ltr"=>"dir", "rtl"=>"dir"},
+ "s"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "ol"=>{"compact"=>"compact", "ltr"=>"dir", "rtl"=>"dir"},
+ "hr"=>
+  {"center"=>"align", "left"=>"align", "ltr"=>"dir", "noshade"=>"noshade",
+   "right"=>"align", "rtl"=>"dir"},
+ "applet"=>
+  {"bottom"=>"align", "left"=>"align", "middle"=>"align", "right"=>"align",
+   "top"=>"align"},
+ "table"=>
+  {"above"=>"frame", "all"=>"rules", "below"=>"frame", "border"=>"frame",
+   "box"=>"frame", "center"=>"align", "cols"=>"rules", "groups"=>"rules",
+   "hsides"=>"frame", "left"=>"align", "lhs"=>"frame", "ltr"=>"dir",
+   "none"=>"rules", "rhs"=>"frame", "right"=>"align", "rows"=>"rules",
+   "rtl"=>"dir", "void"=>"frame", "vsides"=>"frame"},
+ "legend"=>
+  {"bottom"=>"align", "left"=>"align", "ltr"=>"dir", "right"=>"align",
+   "rtl"=>"dir", "top"=>"align"},
+ "cite"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "a"=>
+  {"circle"=>"shape", "default"=>"shape", "ltr"=>"dir", "poly"=>"shape",
+   "rect"=>"shape", "rtl"=>"dir"},
+ "html"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "u"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "blockquote"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "center"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "b"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "base"=>{},
+ "th"=>
+  {"baseline"=>"valign", "bottom"=>"valign", "center"=>"align",
+   "char"=>"align", "col"=>"scope", "colgroup"=>"scope", "justify"=>"align",
+   "left"=>"align", "ltr"=>"dir", "middle"=>"valign", "nowrap"=>"nowrap",
+   "right"=>"align", "row"=>"scope", "rowgroup"=>"scope", "rtl"=>"dir",
+   "top"=>"valign"},
+ "link"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "var"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "samp"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "div"=>
+  {"center"=>"align", "justify"=>"align", "left"=>"align", "ltr"=>"dir",
+   "right"=>"align", "rtl"=>"dir"},
+ "textarea"=>
+  {"disabled"=>"disabled", "ltr"=>"dir", "readonly"=>"readonly", "rtl"=>"dir"},
+ "pre"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "head"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "span"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "br"=>{"all"=>"clear", "left"=>"clear", "none"=>"clear", "right"=>"clear"},
+ "script"=>{"defer"=>"defer"},
+ "noframes"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "style"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "meta"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "dt"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "option"=>
+  {"disabled"=>"disabled", "ltr"=>"dir", "rtl"=>"dir", "selected"=>"selected"},
+ "kbd"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "big"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "tfoot"=>
+  {"baseline"=>"valign", "bottom"=>"valign", "center"=>"align",
+   "char"=>"align", "justify"=>"align", "left"=>"align", "ltr"=>"dir",
+   "middle"=>"valign", "right"=>"align", "rtl"=>"dir", "top"=>"valign"},
+ "sup"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "bdo"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "isindex"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "dfn"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "fieldset"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "em"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "font"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "tbody"=>
+  {"baseline"=>"valign", "bottom"=>"valign", "center"=>"align",
+   "char"=>"align", "justify"=>"align", "left"=>"align", "ltr"=>"dir",
+   "middle"=>"valign", "right"=>"align", "rtl"=>"dir", "top"=>"valign"},
+ "noscript"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "li"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "col"=>
+  {"baseline"=>"valign", "bottom"=>"valign", "center"=>"align",
+   "char"=>"align", "justify"=>"align", "left"=>"align", "ltr"=>"dir",
+   "middle"=>"valign", "right"=>"align", "rtl"=>"dir", "top"=>"valign"},
+ "small"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "dd"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "i"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "menu"=>{"compact"=>"compact", "ltr"=>"dir", "rtl"=>"dir"},
+ "strong"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "basefont"=>{},
+ "img"=>
+  {"bottom"=>"align", "ismap"=>"ismap", "left"=>"align", "ltr"=>"dir",
+   "middle"=>"align", "right"=>"align", "rtl"=>"dir", "top"=>"align"},
+ "optgroup"=>{"disabled"=>"disabled", "ltr"=>"dir", "rtl"=>"dir"},
+ "map"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "h1"=>
+  {"center"=>"align", "justify"=>"align", "left"=>"align", "ltr"=>"dir",
+   "right"=>"align", "rtl"=>"dir"},
+ "address"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "sub"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "param"=>{"data"=>"valuetype", "object"=>"valuetype", "ref"=>"valuetype"},
+ "input"=>
+  {"bottom"=>"align", "button"=>"type", "checkbox"=>"type",
+   "checked"=>"checked", "disabled"=>"disabled", "file"=>"type",
+   "hidden"=>"type", "image"=>"type", "ismap"=>"ismap", "left"=>"align",
+   "ltr"=>"dir", "middle"=>"align", "password"=>"type", "radio"=>"type",
+   "readonly"=>"readonly", "reset"=>"type", "right"=>"align", "rtl"=>"dir",
+   "submit"=>"type", "text"=>"type", "top"=>"align"},
+ "h2"=>
+  {"center"=>"align", "justify"=>"align", "left"=>"align", "ltr"=>"dir",
+   "right"=>"align", "rtl"=>"dir"},
+ "abbr"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "h3"=>
+  {"center"=>"align", "justify"=>"align", "left"=>"align", "ltr"=>"dir",
+   "right"=>"align", "rtl"=>"dir"},
+ "strike"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "body"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "ins"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "button"=>
+  {"button"=>"type", "disabled"=>"disabled", "ltr"=>"dir", "reset"=>"type",
+   "rtl"=>"dir", "submit"=>"type"},
+ "h4"=>
+  {"center"=>"align", "justify"=>"align", "left"=>"align", "ltr"=>"dir",
+   "right"=>"align", "rtl"=>"dir"},
+ "select"=>
+  {"disabled"=>"disabled", "ltr"=>"dir", "multiple"=>"multiple", "rtl"=>"dir"},
+ "caption"=>
+  {"bottom"=>"align", "left"=>"align", "ltr"=>"dir", "right"=>"align",
+   "rtl"=>"dir", "top"=>"align"},
+ "colgroup"=>
+  {"baseline"=>"valign", "bottom"=>"valign", "center"=>"align",
+   "char"=>"align", "justify"=>"align", "left"=>"align", "ltr"=>"dir",
+   "middle"=>"valign", "right"=>"align", "rtl"=>"dir", "top"=>"valign"},
+ "tr"=>
+  {"baseline"=>"valign", "bottom"=>"valign", "center"=>"align",
+   "char"=>"align", "justify"=>"align", "left"=>"align", "ltr"=>"dir",
+   "middle"=>"valign", "right"=>"align", "rtl"=>"dir", "top"=>"valign"},
+ "del"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "h5"=>
+  {"center"=>"align", "justify"=>"align", "left"=>"align", "ltr"=>"dir",
+   "right"=>"align", "rtl"=>"dir"},
+ "iframe"=>
+  {"0"=>"frameborder", "1"=>"frameborder", "auto"=>"scrolling",
+   "bottom"=>"align", "left"=>"align", "middle"=>"align", "no"=>"scrolling",
+   "right"=>"align", "top"=>"align", "yes"=>"scrolling"}}
+
 end
 # The code above is auto-generated.  Don't edit manually.
