@@ -59,7 +59,7 @@ module HTree
           xml = true if !xml && /\A#{Pat::XmlDecl}\z/o =~ $&
         elsif $3
           yield stag = STag.new($&)
-          if !xml && ElementContent[stag.tagname] == :cdata
+          if !xml && ElementContent[stag.tagname] == :CDATA
             cdata_content = stag.tagname
           end
         elsif $4
@@ -138,7 +138,7 @@ module HTree
     until rest.empty?
       elt = rest.shift
       if Elem === elt && !elt.empty_element?
-        elem, rest2 = fix_elem(elt, TagInfo['/'].first, [], [])
+        elem, rest2 = fix_elem(elt, ['html', *ElementContent['html']], [], [])
         result << elem
         rest = rest2 + rest
       else
@@ -155,10 +155,12 @@ module HTree
       return Elem.new(elem.stag, fix_elts(elem.elts), elem.etag), []
     else
       tagname = elem.tagname
-      if EmptyTagHash[tagname]
+      if ElementContent[tagname] == :EMPTY
         return Elem.new(elem.stag), elem.elts
       else
-        possible_tags, forbidden_tags2, additional_tags2 = TagInfo[tagname]
+        possible_tags = ElementContent[tagname]
+        forbidden_tags2 = ElementExclusions[tagname] || []
+        additional_tags2 = ElementInclusions[tagname] || []
         possible_tags = possible_sibling_tags unless possible_tags
         forbidden_tags |= forbidden_tags2 if forbidden_tags2
         additional_tags |= additional_tags2 if additional_tags2
