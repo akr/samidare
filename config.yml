@@ -5,16 +5,15 @@
   - http://a.northeye.net/natsumican.lirs.gz
   - http://www.shudo.net/antenna/natsumican.lirs.gz
 
--
-  - UpdateInfo: html
-    Periodical: true
-  - URI: http://www.jin.gr.jp/~nahi/link-ruby-temp.html
-    UpdateElement: tr
-
 # tDiary
 -
   - IgnoreClass: referer todo hexe counter counter-today counter-yesterday footer calendar adminmenu search
   - http://www.rubyist.net/~matz/
+
+# hatena
+-
+  - IgnoreClass: sidebar recentsubtitles calendar hatena-counter
+  - http://d.hatena.ne.jp/hatenadiary/
 
 - URI: http://lambda.weblogs.com/xml/rss.xml
   LinkURI: http://lambda.weblogs.com/
