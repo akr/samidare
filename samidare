@@ -23,7 +23,7 @@ STATUS_FILENAME = 'status.rm'
 
 TEMPLATE_LATEST_FILENAME = 't.latest.html'
 OUTPUT_LATEST_FILENAME = 'latest.html'
-OUTPUT_LIRS_FILENAME = 'latest.lirs.gz'
+OUTPUT_LIRS_FILENAME = 'sites.lirs.gz'
 
 AutoFile.directory = 'tmp' # xxx: should be configurable.
 
