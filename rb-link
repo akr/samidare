@@ -2,6 +2,7 @@
 
 require 'rbconfig'
 require 'optparse'
+require 'pathname'
 
 def expand_require(out, filename, dirs, main, included={})
   open(filename) {|f|
@@ -28,10 +29,10 @@ def expand_require(out, filename, dirs, main, included={})
 	if included[req]
 	  out.print "#", line
 	else
-	  dir = dirs.find {|d| FileTest.exist? "#{d}/#{req}.rb"}
+	  dir = dirs.find {|d| (d + "#{req}.rb").exist? }
 	  if dir
 	    out.print "#", line
-	    filename = "#{dir}/#{req}.rb"
+	    filename = dir + "#{req}.rb"
 	    included[req] = filename
 	    endmark = 'End_' + [req].pack("m*").delete("\n")
 	    #out.print "eval <<'#{endmark}', TOPLEVEL_BINDING, #{"[#{filename}]".dump}, #{out.output_line+1}\n"
@@ -87,8 +88,11 @@ def main
   parse_options
 
   script = ARGV.shift
-  libdirs = ARGV
-  libdirs = ['.'] if libdirs.empty?
+  if ARGV.empty?
+    libdirs = [Pathname.new('.')]
+  else
+    libdirs = ARGV.map {|f| Pathname.new(f) }
+  end
 
   open_output {|out|
     out.extend CountOutputLine
