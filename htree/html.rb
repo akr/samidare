@@ -603,7 +603,6 @@ module HTree
  "blockquote"=>{"ltr"=>"dir", "rtl"=>"dir"},
  "center"=>{"ltr"=>"dir", "rtl"=>"dir"},
  "b"=>{"ltr"=>"dir", "rtl"=>"dir"},
- "base"=>{},
  "th"=>
   {"baseline"=>"valign", "bottom"=>"valign", "center"=>"align",
    "char"=>"align", "col"=>"scope", "colgroup"=>"scope", "justify"=>"align",
@@ -657,16 +656,15 @@ module HTree
  "i"=>{"ltr"=>"dir", "rtl"=>"dir"},
  "menu"=>{"compact"=>"compact", "ltr"=>"dir", "rtl"=>"dir"},
  "strong"=>{"ltr"=>"dir", "rtl"=>"dir"},
- "basefont"=>{},
  "img"=>
   {"bottom"=>"align", "ismap"=>"ismap", "left"=>"align", "ltr"=>"dir",
    "middle"=>"align", "right"=>"align", "rtl"=>"dir", "top"=>"align"},
  "optgroup"=>{"disabled"=>"disabled", "ltr"=>"dir", "rtl"=>"dir"},
  "map"=>{"ltr"=>"dir", "rtl"=>"dir"},
+ "address"=>{"ltr"=>"dir", "rtl"=>"dir"},
  "h1"=>
   {"center"=>"align", "justify"=>"align", "left"=>"align", "ltr"=>"dir",
    "right"=>"align", "rtl"=>"dir"},
- "address"=>{"ltr"=>"dir", "rtl"=>"dir"},
  "sub"=>{"ltr"=>"dir", "rtl"=>"dir"},
  "param"=>{"data"=>"valuetype", "object"=>"valuetype", "ref"=>"valuetype"},
  "input"=>

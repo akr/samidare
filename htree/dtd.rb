@@ -387,7 +387,7 @@ if $0 == __FILE__
         val2name[v.downcase] = attr_name
       }
     }
-    omitted_attr_name[elem_name] = val2name
+    omitted_attr_name[elem_name] = val2name unless val2name.empty?
   }
   omitted_attr_name.each {|k, v| v.instance_variable_set(:@mypp, true) }
 
