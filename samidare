@@ -910,7 +910,7 @@ class Samidare
       str << h['URI'].gsub(/,/, '\,') << ','
       str << h['title'].gsub(/,/, '\,').strip.gsub(/\s/, ' ') << ','
       str << (h['author'] || '0').gsub(/,/, '\,').strip.gsub(/\s/, ' ') << ','
-      str << ','
+      str << '0,'
       str << "\n"
     }
     str = str.encode_charset('euc-jp')
