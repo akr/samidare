@@ -350,7 +350,8 @@ class Entry
             if !old_lirs or (r1 = l1[uri] and r1.last_modified != r2.last_modified)
               t1 = Time.at(r1.last_modified.to_i) if old_lirs
               t2 = Time.at(r2.last_modified.to_i)
-              if e.find_last_success['clientDateEnd'] < t2 #xxx: not so acculate.
+              last_success = e.find_last_success
+              if last_success && last_success['clientDateEnd'] < t2 #xxx: not so acculate.
                 count_update += 1
                 p [:LIRS_UPDATE, uri, t1, t2, @config['URI']]
                 e.status['_update_info'] = true
@@ -364,6 +365,7 @@ class Entry
       # External update information is a just hint.
       # So it is ignorable even if it has some trouble.
       STDERR.puts "check_lirs: error on #{@config['URI']}: #$!"
+      #pp $!.backtrace
     end
   end
 
