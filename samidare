@@ -1068,7 +1068,7 @@ class Samidare
             else
               [0, h['last-modified'], h['title']]
             end
-          }
+          }.reverse
         }
         if @opt_dump_template_data
           pp data
