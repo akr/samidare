@@ -1,0 +1,73 @@
+#!/usr/bin/env ruby
+
+require 'rbconfig'
+
+def expand_require(out, filename, dirs, main, included={})
+  open(filename) {|f|
+    comment = false
+    test = false
+    f.each {|line|
+      if /^=begin/ =~ line
+        comment = true
+	out.print line
+      elsif /^=end/ =~ line
+        comment = false
+	out.print line
+      elsif comment
+	out.print line
+      elsif !main && (/^if __FILE__ == \$0/ =~ line || /^if \$0 == __FILE__/ =~ line)
+        test = true
+	out.print "#", line
+      elsif test && /^end/ =~ line
+        test = false
+	out.print "#", line
+      elsif test
+	out.print "#", line
+      elsif /^\s*require '([^']*)'/ =~ line && %r{^/} !~ (req = $1)
+	if included[req]
+	  out.print "#", line
+	else
+	  dir = dirs.find {|d| FileTest.exist? "#{d}/#{req}.rb"}
+	  if dir
+	    out.print "#", line
+	    filename = "#{dir}/#{req}.rb"
+	    included[req] = true
+	    endmark = 'End_' + [req].pack("m*").delete("\n")
+	    #out.print "eval <<'#{endmark}', TOPLEVEL_BINDING, #{"[#{filename}]".dump}, #{out.output_line+1}\n"
+	    expand_require(out, filename, dirs, false, included)
+	    #out.print "#{endmark}\n"
+	  else
+	    out.print line
+	  end
+	end
+      else
+	out.print line
+      end
+    }
+  }
+end
+
+class IO
+  module CountOutputLine
+    def output_line
+      @output_line = 1 unless defined? @output_line
+      @output_line
+    end
+
+    def write(str)
+      @output_line = output_line + str.count("\n")
+      super
+    end
+  end
+end
+
+script = ARGV.shift
+incdirs = ARGV
+incdirs = ['.'] if incdirs.empty?
+
+out = STDOUT
+out.extend IO::CountOutputLine
+
+interpreter_path = File.join(Config::CONFIG["bindir"], Config::CONFIG["ruby_install_name"])
+out.print "#! #{interpreter_path}\n"
+expand_require(out, script, incdirs, true)
