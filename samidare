@@ -937,6 +937,7 @@ class Samidare
     result << "\n" if /\n\z/ !~ result
     if @opt_output != '-'
       output_file(@opt_output, result)
+      output_file(@opt_output + '.gz', result.encode_gzip)
     else
       puts result
     end
