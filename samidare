@@ -217,7 +217,7 @@ class Entry
     # compression level is not affected.
     log['checksum'] = content.sum
 
-    if !content_encoding && content_type == 'text/html'
+    if !content_encoding && %r{\A(?:text/html|text/xml)\z} =~ content_type
       t = HTree.parse(content.decode_charset(content_charset))
       log['extractedTitle'] = t.title
 
