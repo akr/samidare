@@ -74,9 +74,13 @@ module Mconv
   }
 
   def Mconv.guess_charset(str)
+    guess_charset_list(str).first
+  end
+
+  def Mconv.guess_charset_list(str)
     case str
-    when /\A\xff\xfe/; return 'utf-16le'
-    when /\A\xfe\xff/; return 'utf-16be'
+    when /\A\xff\xfe/; return ['utf-16le']
+    when /\A\xfe\xff/; return ['utf-16be']
     end
     count = {}
     CharsetTable.each {|name, regexp|
@@ -89,11 +93,13 @@ module Mconv
     }
     max = count.values.max
     count.reject! {|k, v| v != max }
-    return count.keys[0] if count.size == 1
-    return 'us-ascii' if count['us-ascii']
+    return [count.keys[0]] if count.size == 1
+    return ['us-ascii'] if count['us-ascii']
     
     # xxx: needs more accurate guess
-    count.keys.sort.first
+    charsets = count.keys.sort
+    charsets = ["utf-8", "shift_jis"] if charsets == ["shift_jis", "utf-8"]
+    charsets
   end
 
   def Mconv.minimize_charset(charset, string)
@@ -128,6 +134,10 @@ class String
 
   def guess_charset
     Mconv.guess_charset(self)
+  end
+
+  def guess_charset_list
+    Mconv.guess_charset_list(self)
   end
 
   def decode_charset_guess
