@@ -82,7 +82,7 @@ module Mconv
   def Mconv.guess_charset(str)
     case str
     when /\A\xff\xfe/; return 'utf-16le'
-    when /\A\xfe\xff/; return 'utf-16le'
+    when /\A\xfe\xff/; return 'utf-16be'
     end
     count = {}
     CharsetTable.each {|name, regexp|
