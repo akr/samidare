@@ -782,6 +782,18 @@ class Webpecker
     }
   end
 
+  def dump_status(status)
+    if ARGV.empty?
+      status.each {|ent|
+        pp ent
+      }
+    else
+      status.each {|ent|
+        pp ent if ARGV.include?(ent['URI']) || ARGV.include?(ent['LinkURI'])
+      }
+    end
+  end
+
   def create_entries(config, status, readonly=false)
     logs = {}
     status.each {|status_ent|
@@ -816,7 +828,7 @@ class Webpecker
       if @opt_remove_entry
         status.reject! {|h| ARGV.include? h['URI'] } #xx: LinkURI, etc.
       elsif @opt_dump_status
-        pp status
+        dump_status(status)
       else
         entries = create_entries(config, status, readonly)
         if @opt_timing
