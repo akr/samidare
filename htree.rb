@@ -73,10 +73,10 @@ class HTree
   end
 
   module Leaf
-    def initialize(tag)
-      @tag = tag
+    def initialize(str)
+      @str = str
     end
-    def inspect; "{#{self.class.name.sub(/.*::/,'').downcase} #{@tag.inspect}}" end
+    def inspect; "{#{self.class.name.sub(/.*::/,'').downcase} #{@str.inspect}}" end
   end
 
   class DocType; include Leaf; end
