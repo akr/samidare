@@ -85,11 +85,9 @@ class AutoFile
 
     if content_type == 'text/html'
       ext = '.html'
-    elsif /\.[a-z0-9]{1,5}\z/ =~ filename_hint
-      ext = $&
     elsif /\ALIRS/i =~ initial_content
       ext = '.lirs'
-    elsif /<!DOCTYPE rss/i =~ initial_content
+    elsif /<!DOCTYPE rss|\A<rss /i =~ initial_content
       ext = '.rss'
     elsif /<rdf:RDF/i =~ initial_content
       ext = '.rdf'
@@ -97,8 +95,12 @@ class AutoFile
       ext = '.html'
     elsif /\A<\?xml/i =~ initial_content
       ext = '.xml'
+    elsif content_type == 'text/xml'
+      ext = '.xml'
     elsif /<title/i =~ initial_content
       ext = '.html'
+    elsif /\.[a-z0-9]{1,5}\z/ =~ filename_hint
+      ext = $&
     else
       ext = ''
     end
