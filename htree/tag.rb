@@ -1,13 +1,16 @@
 module HTree
   class Tag
-    def initialize(str)
+    def initialize(str, case_sensitive=false)
       @str = str
+      @case_sensitive = case_sensitive
     end
 
     def tagname
       return @tagname if defined? @tagname
       Pat::Name =~ @str
-      @tagname = $&.downcase
+      @tagname = $&
+      @tagname = @tagname.downcase unless @case_sensitive
+      @tagname
     end
 
     def to_s
@@ -16,6 +19,15 @@ module HTree
   end
 
   class STag < Tag
+    def add_extracted_attr(arg1, arg2, arg3)
+      if arg2
+        aname = @case_sensitive ? arg1 : arg1.downcase
+        @attrs << [aname, HTree.fix_character_reference(arg3)]
+      else
+        @attrs << [nil, arg1]
+      end
+    end
+
     def extract_attrs
       return if defined? @attrs
       @attrs = []
@@ -23,18 +35,18 @@ module HTree
       when /\A#{Pat::ValidStartTag_C}\z/o, /\A#{Pat::ValidEmptyTag_C}\z/o
         tagname = $1
         $2.scan(Pat::ValidAttr_C) {
-          @attrs << ($2 ? [$1.downcase, HTree.fix_character_reference($+)] : [nil, $1])
+          add_extracted_attr($1, $2, $+)
         }
       when /\A#{Pat::InvalidStartTag_C}\z/o, /\A#{Pat::InvalidEmptyTag_C}\z/o
         tagname = $1
         attrs = $2
         last_attr = $3
         attrs.scan(Pat::InvalidAttr1_C) {
-          @attrs << ($2 ? [$1.downcase, HTree.fix_character_reference($+)] : [nil, $1])
+          add_extracted_attr($1, $2, $+)
         }
         if last_attr
           /#{Pat::InvalidAttr1End_C}/ =~ last_attr
-          @attrs << ($2 ? [$1.downcase, HTree.fix_character_reference($+)] : [nil, $1])
+          add_extracted_attr($1, $2, $+)
         end
       else
         raise "unrecognized start tag format [bug]: #{@str.inspect}"

@@ -36,7 +36,7 @@ module HTree
              |(#{Pat::CDATA})
              |[^<>]+|[<>]/ox) {
       if cdata_content
-        if $4 && (etag = ETag.new($&)).tagname == cdata_content
+        if $4 && (etag = ETag.new($&, xml)).tagname == cdata_content
           if text
             yield Text.create_cdata_content(text)
             text = nil
@@ -58,14 +58,14 @@ module HTree
           yield ProcIns.new($&)
           xml = true if !xml && /\A#{Pat::XmlDecl}\z/o =~ $&
         elsif $3
-          yield stag = STag.new($&)
+          yield stag = STag.new($&, xml)
           if !xml && ElementContent[stag.tagname] == :CDATA
             cdata_content = stag.tagname
           end
         elsif $4
-          yield ETag.new($&)
+          yield ETag.new($&, xml)
         elsif $5
-          yield Elem.new(STag.new($&))
+          yield Elem.new(STag.new($&, xml))
         elsif $6
           yield Comment.new($&)
         elsif $7
