@@ -2,7 +2,6 @@
 
 $KCODE = 'e'
 
-require 'tempura/template'
 require 'open-uri'
 require 'uri'
 require 'time'
@@ -972,18 +971,6 @@ module Enumerable
   end
 end
 
-# Use dobule quote to quote attributes.
-# This makes decoding &apos; safe.
-# [ruby-talk:74223]
-class REXML::Attribute
-  v = $VERBOSE
-  $VERBOSE = nil
-  def to_string
-    %Q<#@expanded_name="#{to_s().gsub(/"/, '&quot;')}">
-  end
-  $VERBOSE = v
-end
-
 class Samidare
   def open_lock(filename, nonblock=false)
     dirname = File.dirname filename
@@ -1112,15 +1099,19 @@ class Samidare
     end
   end
 
-  module CharConvInternal
-    module_function
-    def to_u8(str) str.encode_charset('utf-8') end
-    def from_u8(str) str.decode_charset('utf-8') end
+  class GuessCharsetPathname
+    def initialize(filename)
+      @filename = filename
+    end
+
+    def read
+      result = File.read(@filename)
+      result.decode_charset_guess
+    end
   end
 
   def generate_output(data)
-    result = Tempura::Template.new_with_string(File.read(@opt_template).decode_charset_guess, CharConvInternal).expand(data)
-    result.gsub!(/&apos;/, "'") # Don't use &apos; because HTML4.01 has no such entity.
+    result = HTree.expand_template(GuessCharsetPathname.new(@opt_template), data, '')
     result << "\n" if /\n\z/ !~ result
     if @opt_output != '-'
       output_file(@opt_output, result)

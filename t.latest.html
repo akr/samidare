@@ -10,22 +10,34 @@
   </head>
   <body>
     <h1>五月雨サンプルアンテナ</h1>
-    <div class="day" _block_="
+    <div class="day" _iter="
       [
         ['General', self['antenna'].find_all {|v| /2ch/ !~ v['URI'] }],
         ['2ch', self['antenna'].find_all {|v| /2ch/ =~ v['URI'] }],
         ['Update information is taken from other system:', self['update_info']]
-      ]//each//category,entries">
-      <h2 _child_="category">category</h2>
+      ].each//category,entries">
+      <h2 _text="category">category</h2>
       <div class="body">
         <ol>
-          <li _block_="entries//each//entry">
-          <span _self_="entry['last-modified'] ? entry['last-modified'].strftime('%m-%d %H:%M') : '- no log -'">title</span
-          ><span _self_="entry['info']">[info]</span>
-          <a _attr_href="entry['linkURI']"
-            ><span _self_="entry['title']"
-            /><span _if_="entry['author']"> (<span _self_="entry['author']">author</span>)</span></a>
-          [<span _block_="entry['_log'].map {|log| log['content'] }.compact.find_all {|content| content.exist? }.reverse//each_with_index//content,i"><span _if_="i != 0"> </span><a _attr_href="content.pathname" _child_="i">i</a></span>]
+          <li _iter="entries.each//entry">
+            <span _text="
+              entry['last-modified'] ?
+              entry['last-modified'].strftime('%m-%d %H:%M') :
+              '- no log -'">title</span>
+            <span _iter="
+              [entry['_log'].map {|log| log['content'] }.compact.reverse.find {|content| content.exist? }].each//content
+              "><a _if="content" _else=x _attr_href="content.pathname">C</a><span _template=x>X</span></span>
+            <a _attr_href="entry['linkURI']"
+            ><span _text="entry['title']"
+            /><span _if="author = entry['author']"> (<span _text="author">author</span>)</span></a
+            ><span _text="entry['info']">[info]</span
+            > [<span _iter="
+              entry['_log'].map {|log|
+                log['content']
+              }.compact.find_all {|content|
+                content.exist?
+              }.reverse.each_with_index//content,i
+              "><span _if="i != 0"> </span><a _attr_href="content.pathname" _text="i">i</a></span>]
           </li>
         </ol>
       </div>
