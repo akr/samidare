@@ -225,7 +225,7 @@ class Entry
         ignore_path = []
       end
       t = t.filter_with_path {|e, path|
-        (HTree === e && (e.tagname == 'style' || e.tagname == 'script')) || !ignore_path.include?(path)
+        (HTree === e && e.tagname != 'style' && e.tagname != 'script') || !ignore_path.include?(path)
       }
       log['checksum_filtered'] = t.rcdata.sum
       log['checksum_filter'] = ['IgnorePath', *ignore_path]
