@@ -16,6 +16,7 @@ require 'pp'
 require 'optparse'
 require 'rexml/document'
 require 'zlib'
+require 'lirs'
 
 CONFIG_FILENAME = 'config.yml'
 STATUS_FILENAME = 'status.rm'
@@ -24,9 +25,12 @@ TEMPLATE_LATEST_FILENAME = 't.latest.html'
 OUTPUT_LATEST_FILENAME = 'latest.html'
 
 class Entry
+  ENTRIES = {}
+
   def initialize(hash, config)
     @hash = hash
     @config = config
+    ENTRIES[@hash['URI']] = self
   end
   attr_reader :hash
   attr_reader :config
@@ -38,7 +42,8 @@ class Entry
   def should_check?
     ARGV.empty? or
     ARGV.include?(@config['URI']) or
-    @config['LinkURI'] && ARGV.include?(@config['LinkURI'])
+    @config['LinkURI'] && ARGV.include?(@config['LinkURI']) or
+    @hash['_update_info']
   end
 
   DefaultMinimumInterval = 5 * 60
@@ -50,7 +55,10 @@ class Entry
   end
 
   def next_timing
-    if e1 = find_first_error
+    if @hash['_update_info']
+      Time.now
+    elsif e1 = find_first_error
+      min = @config.fetch('MinimumInterval', DefaultMinimumInterval) # xxx: should support units other than second.
       e2 = find_last_error
       e1t = e1['clientDateEnd']
       e2t = e2['clientDateEnd']
@@ -86,9 +94,7 @@ class Entry
 
   def check
     uri = @config['URI']
-
     @hash['_log'] = [] unless @hash['_log']
-    log = @hash['_log']
 
     client_date_1 = Time.now
     STDERR.puts "#{client_date_1.iso8601} fetch start #{uri}" if $VERBOSE
@@ -125,7 +131,7 @@ class Entry
       trouble = $!.message
     end
     client_date_2 = Time.now
-    STDERR.puts "#{client_date_2.iso8601} fetch end #{trouble || status_message} #{uri}" if $VERBOSE
+    STDERR.puts "#{client_date_2.iso8601} fetch end #{trouble || "#{status} #{status_message}"} #{uri}" if $VERBOSE
 
     h = @config.dup
     h['status'] = status
@@ -180,6 +186,7 @@ class Entry
       h['checksum'] = content.sum unless h['checksum']
 
       if @config['UpdateInfo'] == 'lirs' && !content_encoding
+        check_lirs(content)
         h['content'] = String.new(content)
       end
     end
@@ -189,6 +196,37 @@ class Entry
     h['clientDateEnd'] = client_date_2
 
     add_log(h)
+
+    @hash.delete '_update_info'
+  end
+
+  def check_lirs(new_lirs)
+    log = @hash['_log']
+    old_lirs = nil
+    log.reverse_each {|h|
+      if h['content']
+        old_lirs = h['content']
+        break
+      end
+    }
+    return unless old_lirs
+
+    log.each {|h| h.delete 'content' }
+
+    begin
+      l1 = LIRS.decode(old_lirs)
+      l2 = LIRS.decode(new_lirs)
+      l1.each {|r1|
+        uri = r1.target_url
+        if r2 = l2[uri] and r1.last_modified != r2.last_modified
+          p [:LIRS_UPDATE, uri, Time.at(r1.last_modified.to_i), Time.at(r2.last_modified.to_i)]
+          ENTRIES[uri].hash['_update_info'] = true if ENTRIES[uri]
+        end
+      }
+    rescue
+      # External update information is a just hint.
+      # So it is ignorable even if it has some trouble.
+    end
   end
 
   StatusMap = {
@@ -198,6 +236,7 @@ class Entry
   StatusMap.default = 'e' # Error
 
   def add_log(h)
+    @hash['_log'] = [] unless @hash['_log']
     log = @hash['_log']
     history = log.map {|l| StatusMap[l['status']] }.join + ' ' + StatusMap[h['status']]
 
@@ -524,6 +563,7 @@ class Webpecker
     @opt_dont_check = nil
     @opt_force_check = nil
     @opt_timing = nil
+    @opt_dump_config = nil
     ARGV.options {|q|
       q.banner = 'webpecker [opts]'
       q.def_option('--help', 'show this message') {puts q; exit(0)}
@@ -532,6 +572,7 @@ class Webpecker
       q.def_option('--force', '-f', 'force check (avoid timing control mechanism)') { @opt_force_check = true }
       q.def_option('--output=filename', '-o', 'specify output file') {|filename| @opt_output = filename }
       q.def_option('--timing', '-t', 'show timings') { @opt_timing = true }
+      q.def_option('--dump-config', 'dump flatten configuration') { @opt_dump_config = true }
       q.parse!
     }
   end
@@ -561,6 +602,10 @@ class Webpecker
     parse_options
     # xxx if @opt_dont_check, shouldn't lock/write-back status.rm
     config = load_config
+    if @opt_dump_config
+      puts config.to_yaml
+      exit
+    end
     data = nil
     open_status {|status|
       entries = create_entries(config, status)
