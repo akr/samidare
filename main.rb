@@ -166,7 +166,7 @@ class Entry
     if $VERBOSE
       STDERR.puts "#{client_date_2.iso8601} fetch end #{log['trouble'] || "#{log['status']} #{log['statusMessage']}"} #{uri}"
       if log['trouble'] && log['backtrace']
-        STDERR.puts "|#{client_date_2.iso8601} ERROR: #{log['trouble']}"
+        STDERR.puts "|#{client_date_2.iso8601} ERROR: #{log['trouble']} (#{log['exception_class']})"
         log['backtrace'].each {|pos|
           STDERR.puts "| #{pos}"
         }
@@ -207,6 +207,7 @@ class Entry
     meta = nil
     status = nil
     status_message = nil
+    exception_class = nil
     trouble = nil
     backtrace = nil
     begin
@@ -224,10 +225,12 @@ class Entry
         status = $!.io.status[0]
         status_message = $!.io.status[1]
         trouble = "#{status} #{status_message}"
+        exception_class = $!.class.name
       end
     rescue StandardError, TimeoutError
       trouble = $!.message
       backtrace = $!.backtrace
+      exception_class = $!.class.name
     end
 
     log['status'] = status
@@ -235,6 +238,7 @@ class Entry
     log['serverDateString'] = meta['date'] if meta && meta['date']
     log['trouble'] = trouble if trouble
     log['backtrace'] = backtrace if backtrace
+    log['exception_class'] = exception_class if exception_class
 
     if @config['LogMeta']
       log['logSendHeader'] = opts
