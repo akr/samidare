@@ -205,7 +205,9 @@ class Entry
         h['contentEncoding'] = content_encoding if content_encoding
       end
       if content_type == 'text/html' && !content_encoding
-        t = Tidy.parse_string(content, :encoding=>content_charset).head.children.find {|n| n.title? && !n.children.empty? && !n.children[0].text.empty? }.children[0]
+        t = Tidy.parse_string(content, :encoding=>content_charset).head
+        t = t.children.find {|n| n.title? && !n.children.empty? && !n.children[0].text.empty? }
+        t = t.children[0] if t
         t = t.text.chomp.decode_charset(content_charset) if t
         h['extractedTitle'] = t.decode_html_escape.gsub(/\0/, '') if t
         if @config['ChecksumXPath']
@@ -250,19 +252,26 @@ class Entry
     begin
       l1 = LIRS.decode(old_lirs) if old_lirs
       l2 = LIRS.decode(new_lirs)
+      count_all = 0
+      count_interest = 0
+      count_update = 0
       l2.each {|r2|
+        count_all += 1
         uri = r2.target_url
-        if !old_lirs or (r1 = l1[uri] and r1.last_modified != r2.last_modified)
-          if e = ENTRIES[uri]
+        if e = ENTRIES[uri]
+          count_interest += 1
+          if !old_lirs or (r1 = l1[uri] and r1.last_modified != r2.last_modified)
             t1 = Time.at(r1.last_modified.to_i) if old_lirs
             t2 = Time.at(r2.last_modified.to_i)
             if e.find_last_success['clientDateEnd'] < t2 #xxx: not so acculate.
+              count_update += 1
               p [:LIRS_UPDATE, uri, t1, t2, @config['URI']]
               ENTRIES[uri].hash['_update_info'] = true
             end
           end
         end
       }
+      STDERR.puts "LIRS total: #{count_update} / #{count_interest} / #{count_all} - #{@config['URI']}" if $VERBOSE
     rescue
       # External update information is a just hint.
       # So it is ignorable even if it has some trouble.
