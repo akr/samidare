@@ -15,6 +15,7 @@ require 'net/http'
 require 'pp'
 require 'optparse'
 require 'rexml/document'
+require 'zlib'
 
 CONFIG_FILENAME = 'config.yml'
 STATUS_FILENAME = 'status.rm'
@@ -140,12 +141,28 @@ class Entry
       content_charset = page.charset { @config['DefaultCharset'] || page.guess_charset }
       content_charset = content_charset.downcase
       h['contentCharset'] = content_charset
-      content_encoding = h['contentEncoding'] = page.content_encoding if !page.content_encoding.empty?
+      content = page
+      if !page.content_encoding.empty?
+        content_encoding = page.content_encoding.dup
+        while !content_encoding.empty?
+          case content_encoding.last
+          when 'gzip', 'x-gzip'
+            content = content.decode_gzip
+          when 'deflate'
+            content = content.decode_deflate
+          else
+            break
+          end
+          content_encoding.pop
+        end
+        content_encoding = nil if content_encoding.empty?
+        h['contentEncoding'] = content_encoding if content_encoding
+      end
       if content_type == 'text/html' && !content_encoding
-        t = Tidy.parse_string(page, :encoding=>content_charset).head.children.find {|n| n.title? }.children[0]
+        t = Tidy.parse_string(content, :encoding=>content_charset).head.children.find {|n| n.title? }.children[0]
         h['extractedTitle'] = t.text.chomp.decode_charset(content_charset).decode_html_escape.gsub(/\0/, '') if t
         if @config['ChecksumXPath']
-          t = Iconv.iconv("utf-8", content_charset, page).join
+          t = Iconv.iconv("utf-8", content_charset, content).join
           t = Tidy.parse_string(t, "output-xml"=>true, :encoding=>"UTF-8").dump
           t.gsub!(%r{<\n\/}, '</')
           begin
@@ -156,7 +173,11 @@ class Entry
           end
         end
       end
-      h['checksum'] = page.sum unless h['checksum']
+      h['checksum'] = content.sum unless h['checksum']
+
+      if @config['Antenna'] == 'lirs' && !content_encoding
+        h['content'] = String.new(content)
+      end
     end
 
     h['trouble'] = trouble if trouble
@@ -344,6 +365,14 @@ class String
   }
   def decode_html_escape
     self.gsub(/&(amp|lt|gt|quot);/) { HTMLDecodeEscape[$1] }
+  end
+
+  def decode_gzip
+    Zlib::GzipReader.new(StringIO.new(self)).read
+  end
+
+  def decode_deflate
+    Zlib::Inflate.inflate(self)
   end
 end
 
