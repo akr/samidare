@@ -282,15 +282,26 @@ class Entry
       ignore_path = []
     end
     ignore_pattern = path2pattern(*ignore_path)
+
+    if ignore_class = @config['IgnoreClass']
+      ignore_class = ignore_class.split(/\s+/)
+    else
+      ignore_class = []
+    end
+
     t = t.filter_with_path {|e, path|
       not ( 
         (HTree::Elem === e && (e.tagname == 'style' ||
                                e.tagname == 'script')) ||
-        ignore_pattern =~ path
+        ignore_pattern =~ path ||
+        (HTree::Elem === e && ignore_class.include?(e.stag.fetch_attribute_text('class', nil)))
       )
     }
     log['checksum_filtered'] = t.rcdata.sum
+
+    # xxx: checksum_filter format should be changed.
     log['checksum_filter'] = ['IgnorePath', *ignore_path] if !ignore_path.empty?
+    (log['checksum_filter'] ||= []).concat ['IgnoreClass', *ignore_class] if !ignore_class.empty?
   end
 
   def examine_lirs(decoded_content, log)
