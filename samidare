@@ -267,6 +267,8 @@ class Entry
         else
           Regexp.quote(step) + '(\[\d+\])?'
         end
+      }.gsub(%r{//+}) {
+        "/(?:[^/]+/)*"
       })
     }}\z/
   end
