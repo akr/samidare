@@ -23,10 +23,7 @@ module HTree
   class Tag
     def initialize(str)
       @str = str
-      @prefix = []
-      @suffix = []
     end
-    attr_accessor :prefix, :suffix
 
     def tagname
       return @tagname if defined? @tagname
@@ -170,6 +167,7 @@ module HTree
       }
     end
     alias inspect pretty_print_inspect
+
   end
 
   class DocType
@@ -188,24 +186,25 @@ module HTree
     def html_text; '' end
   end
   class EmptyElem
-    include Leaf
-    def extract_taginfo
-      return if defined? @tagname
-      if @str
-        Pat::Name =~ @str
-        @tagname = $&.downcase
-      else
-        @tagname = nil
-      end
+    include Node
+    def initialize(tag)
+      @tag = tag
     end
     def tagname
-      extract_taginfo
-      @tagname
+      @tag.tagname
     end
     def each_element(name=nil)
       yield self if name == nil || self.tagname == name
     end
     def html_text; '' end
+    def raw_string; @tag.to_s; end
+    def pretty_print(pp)
+      pp.group(1, '{', '}') {
+        pp.text self.class.name.sub(/.*::/,'').downcase
+        pp.breakable; pp.pp @tag.to_s
+      }
+    end
+    alias inspect pretty_print_inspect
   end
   class BogusETag
     include Leaf
@@ -483,7 +482,7 @@ module HTree
         elsif $4
           yield ETag.new($&)
         elsif $5
-          yield EmptyElem.new($&)
+          yield EmptyElem.new(STag.new($&))
         else
           yield Comment.new($&)
         end
@@ -562,7 +561,7 @@ module HTree
     else
       tagname = elem.tagname
       if EmptyTagHash[tagname]
-        return EmptyElem.new(elem.stag.to_s), elem.elts
+        return EmptyElem.new(elem.stag), elem.elts
       else
         possible_tags, forbidden_tags2, additional_tags2 = TagInfo[tagname]
         possible_tags = possible_sibling_tags unless possible_tags
