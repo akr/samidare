@@ -103,7 +103,8 @@ class HTree
     end
 
     def title
-      first_element('title')
+      e = first_element('title')
+      e && e.text
     end
 
     def raw_string

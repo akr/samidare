@@ -215,8 +215,7 @@ class Entry
       end
       if content_type == 'text/html' && !content_encoding
         t = HTree.parse(content.decode_charset(content_charset))
-        t = t.title
-        h['extractedTitle'] = t.text if t
+        h['extractedTitle'] = t.title
         if @config['ChecksumXPath']
           t = Mconv.conv(content, "utf-8", content_charset)
           t = Tidy.parse_string(t, "output-xml"=>true, :encoding=>"UTF-8", :wrap=>nil).dump
