@@ -1180,8 +1180,8 @@ class Samidare
       q.def_option('--verbose', '-v', 'verbose') { $VERBOSE = true }
       q.def_option('--no-check', '-n', 'don\'t check web') { @opt_dont_check = true }
       q.def_option('--force', '-f', 'force check (avoid timing control mechanism)') { @opt_force_check = true }
-      q.def_option('--output=filename', '-o', 'specify output file') {|filename| @opt_output = filename }
-      q.def_option('--output-lirs=filename', '-o', 'specify output file') {|filename| @opt_output_lirs = filename }
+      q.def_option('--output=filename', '-o', 'specify output html file') {|filename| @opt_output = filename }
+      q.def_option('--output-lirs=filename', 'specify output lirs file') {|filename| @opt_output_lirs = filename }
       q.def_option('--template=filename', '-T', 'specify template') {|filename| @opt_template = filename }
       q.def_option('--timing', '-t', 'show timings') { @opt_timing = true }
       q.def_option('--dump-config', 'dump flatten configuration') { @opt_dump_config = true }
