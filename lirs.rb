@@ -26,6 +26,10 @@ class LIRS
     @record = {}
   end
 
+  def size
+    @record.size
+  end
+
   def <<(record)
     @record[record.target_url] = record
   end
