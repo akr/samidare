@@ -53,7 +53,13 @@ class Entry
     result << @config['URI']
     result << @config['LinkURI'] if @config['LinkURI']
     result.concat @config['RelatedURI'].split(/\s+/) if @config['RelatedURI']
-    # @status['_log'][...]['baseURI'] ?
+    if logseq = @status['_log']
+      logseq.each {|log|
+        result << log['baseURI'] if log['baseURI']
+        result << log['extractedLinkURI'] if log['extractedLinkURI']
+      }
+    end
+    result.uniq!
     result
   end
 
