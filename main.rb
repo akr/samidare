@@ -357,7 +357,8 @@ class Entry
       ignore_id = []
     end
 
-    t = tree.filter_with_path {|e, path|
+    t = tree.make_loc.filter {|e|
+      path = e.path.sub(%r{^doc\(\)}, '')
       not (
         (HTree::Elem === e && (%r[\A(?:\{http://www.w3.org/1999/xhtml\})?style\z] =~ e.name ||
                                %r[\A(?:\{http://www.w3.org/1999/xhtml\})?script\z] =~ e.name)) ||
@@ -897,12 +898,14 @@ class Entry
     tree2, checksum_filter2 = ignore_tree(HTree.parse(File.read(filename2).decode_charset_guess), log2)
 
     text1 = []
-    tree1.traverse_with_path {|n, path|
+    tree1.make_loc.traverse_element {|n|
+      path = n.path.sub(%r{^doc\(\)}, '')
       text1 << [n.to_s, path] if HTree::Text === n
     }
 
     text2 = []
-    tree2.traverse_with_path {|n, path|
+    tree2.make_loc.traverse_element {|n|
+      path = n.path.sub(%r{^doc\(\)}, '')
       text2 << [n.to_s, path] if HTree::Text === n
     }
 
