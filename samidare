@@ -341,7 +341,7 @@ class Entry
       end
       unless uris.empty?
         check = ''
-        entry.each_element(check_xpath) {|e| e.write check }
+        REXML::XPath.each(entry, check_xpath) {|n| n.write check }
         uris.each {|uri| uri_set[uri] = check }
       end
     }
