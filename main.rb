@@ -536,7 +536,11 @@ class Entry
 
   def extract_html_update_info(log)
     return {} unless log && log['content'] && log['contentCharset']
-    content = log['content'].content
+    begin
+      content = log['content'].content
+    rescue Errno::ENOENT
+      return {}
+    end
     content = content.decode_charset(log['contentCharset'])
     tree = HTree.parse(content)
     tree, checksum_filter = ignore_tree(tree, log)
@@ -1151,7 +1155,7 @@ class Samidare
     @opt_dump_filenames2 = nil
     @opt_diff_content = nil
     ARGV.options {|q|
-      q.banner = 'webpecker [opts]'
+      q.banner = 'samidare [opts]'
       q.def_option('--help', 'show this message') {puts q; exit(0)}
       q.def_option('--verbose', '-v', 'verbose') { $VERBOSE = true }
       q.def_option('--no-check', '-n', 'don\'t check web') { @opt_dont_check = true }
