@@ -715,7 +715,6 @@ class Entry
       if l = find_first_200_with_current_content
         h['last-modified-found'] = l['clientDateBeg'] # xxx: clientDateEnd is better?
         if l.include? 'lastModifiedString'
-          h['last-modified-time'] = Time.httpdate_robust(l['lastModifiedString'])
           h['last-modified'] = Time.httpdate_robust(l['lastModifiedString']).localtime
           l2 = find_last_200
           unless l.equal? l2
@@ -726,10 +725,8 @@ class Entry
             end
           end
         elsif l.include? 'extractedLastModified'
-          h['last-modified-time'] = l['extractedLastModified']
           h['last-modified'] = l['extractedLastModified'].getlocal
         else
-          h['last-modified-time'] = l['clientDateBeg']
           h['last-modified'] = l['clientDateBeg'].getlocal
           h['info'] << '[NoLM]'
         end
@@ -948,10 +945,10 @@ class Samidare
   def generate_lirs(data)
     str = ''
     data["antenna"].each {|h|
-      next unless h['last-modified-time'] && h['last-modified-found']
-      #p ['LIRS', h['last-modified-time'], h['last-modified-found'], h['URI'], h['title'], h['author']]
+      next unless h['last-modified'] && h['last-modified-found']
+      #p ['LIRS', h['last-modified'], h['last-modified-found'], h['URI'], h['title'], h['author']]
       str << 'LIRS,'
-      str << h['last-modified-time'].to_i.to_s << ','
+      str << h['last-modified'].to_i.to_s << ','
       str << h['last-modified-found'].to_i.to_s << ','
       str << '32400,'
       str << '0,'
