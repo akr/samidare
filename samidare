@@ -891,23 +891,28 @@ class Samidare
     end
   end
 
+  def output_file(filename, content)
+    dir = File.dirname filename
+    if FileTest.writable? dir
+      filename_new = filename + '.new'
+      open(filename_new, 'w') {|f|
+        f.print content
+      }
+      File.rename filename_new, filename
+    else
+      open(filename, 'w') {|f|
+        f.print content
+      }
+    end
+  end
+
   def generate_output(data)
     data = deep_copy(data)
     result = XTemplate::XMLTemplate.new(File.read(@opt_template).decode_charset_guess).expand(data)
     result.gsub!(/&apos;/, "'")
+    result << "\n" if /\n\z/ !~ result
     if @opt_output != '-'
-      dir = File.dirname @opt_output
-      if FileTest.writable? dir
-        output_new = @opt_output + '.new'
-        open(output_new, 'w') {|f|
-          f.puts result
-        }
-        File.rename output_new, @opt_output
-      else
-        open(@opt_output, 'w') {|f|
-          f.puts result
-        }
-      end
+      output_file(@opt_output, result)
     else
       puts result
     end
@@ -932,9 +937,7 @@ class Samidare
     str = str.encode_charset('euc-jp')
     str = str.encode_gzip
 
-    open(@opt_output_lirs, 'w') {|f|
-      f << str
-    }
+    output_file(@opt_output_lirs, str)
   end
 
   def parse_options
