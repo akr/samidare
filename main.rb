@@ -323,7 +323,7 @@ class Entry
                                '{http://my.netscape.com/rdf/simple/0.9/}link')
         base_uri = URI.parse(log['baseURI'] || @config['URI'])
         link_uri = base_uri + link.extract_text.to_s.strip
-        if link_uri.scheme == 'http'
+        if link_uri.scheme == 'http' && base_uri.host == link_uri.host
           log['extractedLinkURI'] = link_uri.to_s
         end
       end
