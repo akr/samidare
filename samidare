@@ -37,20 +37,21 @@ class Entry
   ENTRIES = {}
 
   def initialize(hash, config)
-    @hash = hash
+    @status = hash
     @config = config
     related_uris.each {|uri|
-      ENTRIES[uri] = self
+      ENTRIES[uri] ||= []
+      ENTRIES[uri] << self
     }
   end
-  attr_reader :hash
+  attr_reader :status
   attr_reader :config
 
   def related_uris
     result = []
     result << @config['URI']
     result << @config['LinkURI'] if @config['LinkURI']
-    # @hash['_log'][...]['baseURI'] ?
+    # @status['_log'][...]['baseURI'] ?
     result
   end
 
@@ -62,7 +63,7 @@ class Entry
     ARGV.empty? or
     ARGV.include?(@config['URI']) or
     @config['LinkURI'] && ARGV.include?(@config['LinkURI']) or
-    @hash['_update_info']
+    @status['_update_info']
   end
 
   DefaultMinimumInterval = 5 * 60
@@ -95,7 +96,7 @@ class Entry
   end
 
   def next_timing
-    if @hash['_update_info']
+    if @status['_update_info']
       Time.now
     elsif e1 = find_first_error
       min = @config.fetch('MinimumInterval', DefaultMinimumInterval) # xxx: should support units other than second.
@@ -144,8 +145,8 @@ class Entry
 
   def check
     uri = @config['URI']
-    @hash['_log'] = [] unless @hash['_log']
-    logseq = @hash['_log']
+    @status['_log'] = [] unless @status['_log']
+    logseq = @status['_log']
 
     log = @config.dup
 
@@ -163,7 +164,7 @@ class Entry
     end
 
     add_log(log)
-    @hash.delete '_update_info'
+    @status.delete '_update_info'
   end
 
   def fetch(log)
@@ -172,7 +173,7 @@ class Entry
       "Accept-Encoding"=>"gzip, deflate",
       "User-Agent"=>"samidare"
     }
-    if h = find_last_200 and @hash['_log'].last['status'] != '412'
+    if h = find_last_200 and @status['_log'].last['status'] != '412'
       # publicfile rejects requests which have If-None-Match as:
       #   412 I do not accept If-None-Match
       # Since 412 means `Precondition Failed', samidare tries request without
@@ -324,7 +325,7 @@ class Entry
   end
 
   def check_lirs(new_lirs)
-    logseq = @hash['_log']
+    logseq = @status['_log']
     old_lirs = nil
     logseq.reverse_each {|h|
       if h['content']
@@ -341,17 +342,19 @@ class Entry
       l2.each {|r2|
         count_all += 1
         uri = r2.target_url
-        if e = ENTRIES[uri]
-          count_interest += 1
-          if !old_lirs or (r1 = l1[uri] and r1.last_modified != r2.last_modified)
-            t1 = Time.at(r1.last_modified.to_i) if old_lirs
-            t2 = Time.at(r2.last_modified.to_i)
-            if e.find_last_success['clientDateEnd'] < t2 #xxx: not so acculate.
-              count_update += 1
-              p [:LIRS_UPDATE, uri, t1, t2, @config['URI']]
-              ENTRIES[uri].hash['_update_info'] = true
+        if es = ENTRIES[uri]
+          es.each {|e|
+            count_interest += 1
+            if !old_lirs or (r1 = l1[uri] and r1.last_modified != r2.last_modified)
+              t1 = Time.at(r1.last_modified.to_i) if old_lirs
+              t2 = Time.at(r2.last_modified.to_i)
+              if e.find_last_success['clientDateEnd'] < t2 #xxx: not so acculate.
+                count_update += 1
+                p [:LIRS_UPDATE, uri, t1, t2, @config['URI']]
+                ENTRIES[uri].status['_update_info'] = true
+              end
             end
-          end
+          }
         end
       }
       STDERR.puts "LIRS total: #{count_update} / #{count_interest} / #{count_all} - #{@config['URI']}" if $VERBOSE
@@ -381,7 +384,11 @@ class Entry
       end
     }
     updated_uris.each_key {|uri|
-      ENTRIES[uri].hash['_update_info'] = true
+      if es = ENTRIES[uri]
+        es.each {|e|
+          e.status['_update_info'] = true
+        }
+      end
     }
     STDERR.puts "HTML total: #{updated_uris.size} / #{new_check_key.size} - #{@config['URI']}" if $VERBOSE
   end
@@ -433,7 +440,7 @@ class Entry
   def add_periodical_info(h)
     return if h['status'] != '200'
 
-    logseq = @hash['_log']
+    logseq = @status['_log']
 
     periodical = nil
     logseq.reverse_each {|l|
@@ -472,12 +479,12 @@ class Entry
   end
 
   def add_log(log)
-    @hash['_log'] = [] unless @hash['_log']
+    @status['_log'] = [] unless @status['_log']
 
     #add_periodical_info(log) if @config['Periodical']
     add_periodical_info(log)
 
-    logseq = @hash['_log']
+    logseq = @status['_log']
 
     case StatusMap[log['status']]
     when 'e'
@@ -538,7 +545,7 @@ class Entry
 
   def find_first_200_with_current_content
     result = nil
-    @hash['_log'].reverse_each {|h|
+    @status['_log'].reverse_each {|h|
       if h['status'] == '200'
         if !result
           result = h
@@ -553,28 +560,28 @@ class Entry
   end
 
   def find_last_200
-    @hash['_log'].reverse_each {|h|
+    @status['_log'].reverse_each {|h|
       return h if h['status'] == '200'
     }
     nil
   end
 
   def find_last_success # 200 or 304
-    @hash['_log'].reverse_each {|h|
+    @status['_log'].reverse_each {|h|
       return h if StatusMap[h['status']] != 'e'
     }
     nil
   end
 
   def find_first_error
-    @hash['_log'].each {|h|
+    @status['_log'].each {|h|
       return h if StatusMap[h['status']] == 'e'
     }
     nil
   end
 
   def find_last_error
-    @hash['_log'].reverse_each {|h|
+    @status['_log'].reverse_each {|h|
       return h if StatusMap[h['status']] == 'e'
     }
     nil
@@ -582,8 +589,8 @@ class Entry
 
   def presentation_data
     h = @config.dup
-    logseq = @hash['_log']
-    h.update @hash # xxx
+    logseq = @status['_log']
+    h.update @status # xxx
     h['title'] = h['Title']
     h['author'] = h['Author']
     h['last-modified'] = '- no log -'
@@ -627,7 +634,7 @@ class Entry
   end
 
   def merge(hash)
-    @hash = hash.dup.update(@hash)
+    @status = hash.dup.update(@status)
   end
 end
 
