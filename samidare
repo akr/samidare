@@ -127,6 +127,7 @@ class Entry
   def check
     uri = @config['URI']
     @hash['_log'] = [] unless @hash['_log']
+    log = @hash['_log']
 
     client_date_1 = Time.now
     STDERR.puts "#{client_date_1.iso8601} fetch start #{uri}" if $VERBOSE
@@ -224,10 +225,18 @@ class Entry
       end
       h['checksum'] = content.sum unless h['checksum']
 
-      if @config['UpdateInfo'] == 'lirs' && !content_encoding
-        check_lirs(content)
-        h['content'] = String.new(content)
+      if !content_encoding
+        case @config['UpdateInfo']
+        when 'lirs'
+          h['content'] = String.new(content)
+          check_lirs(content)
+        when 'html'
+          h['content'] = String.new(content)
+          check_html(h)
+        end
       end
+
+      log.each {|l| l.delete 'content' }
     end
 
     h['trouble'] = trouble if trouble
@@ -248,7 +257,6 @@ class Entry
         break
       end
     }
-    log.each {|h| h.delete 'content' }
     begin
       l1 = LIRS.decode(old_lirs) if old_lirs
       l2 = LIRS.decode(new_lirs)
@@ -276,6 +284,60 @@ class Entry
       # External update information is a just hint.
       # So it is ignorable even if it has some trouble.
     end
+  end
+
+  #xxx: rescue
+  def check_html(new_log)
+    new_check_key = extract_html_check_key(new_log)
+    old_log = find_last_200
+    old_check_key = old_log ? extract_html_check_key(old_log) : {}
+    updated_uris = {}
+    (new_check_key.keys - old_check_key.keys).each {|uri|
+      p [:HTML_UPDATE, uri, @config['URI']]
+      updated_uris[uri] = true
+    }
+    (new_check_key.keys & old_check_key.keys).each {|uri|
+      if old_check_key[uri] != new_check_key[uri]
+        p [:HTML_UPDATE, uri, @config['URI']]
+        updated_uris[uri] = true
+      end
+    }
+    updated_uris.each_key {|uri|
+      ENTRIES[uri].hash['_update_info'] = true
+    }
+  end
+
+  def extract_html_check_key(log)
+    content = log['content']
+    return {} unless content
+
+    entry_xpath = @config.fetch("UpdateEntry", "//a")
+    check_xpath = @config.fetch("UpdateCheck", ".")
+
+    uri_set = {}
+    t = Iconv.conv('UTF-8', log['contentCharset'], content)
+    t = Tidy.parse_string(t, "output-xml"=>true, :encoding=>"UTF-8").dump
+    t.gsub!(%r{<\n\/}, '</')
+    doc = REXML::Document.new(t)
+    base_uri = nil || log['baseURI'] || log['URI'] # xxx: base URI が meta で書いてあれば使う
+    doc.each_element(entry_xpath) {|entry|
+      uris = []
+      if entry.name == 'a'
+        uri = entry.attribute("href")
+        uris << uri if uri && ENTRIES.include?(uri)
+      else
+        entry.each_element(".//a") {|e|
+          uri = e.attribute("href").to_s
+          uris << uri if uri && ENTRIES.include?(uri)
+        }
+      end
+      unless uris.empty?
+        check = ''
+        entry.each_element(check_xpath) {|e| e.write check }
+        uris.each {|uri| uri_set[uri] = check }
+      end
+    }
+    uri_set
   end
 
   StatusMap = {
@@ -702,6 +764,7 @@ class Webpecker
     @opt_dump_status = nil
     @opt_dump_template_data = nil
     @opt_template = TEMPLATE_LATEST_FILENAME
+    @opt_remove_entry = nil
     ARGV.options {|q|
       q.banner = 'webpecker [opts]'
       q.def_option('--help', 'show this message') {puts q; exit(0)}
@@ -714,6 +777,7 @@ class Webpecker
       q.def_option('--dump-config', 'dump flatten configuration') { @opt_dump_config = true }
       q.def_option('--dump-status', 'dump status') { @opt_dump_status = true }
       q.def_option('--dump-template-data', 'dump data for expand template') { @opt_dump_template_data = true }
+      q.def_option('--remove-entry', 'remove entry') { @opt_remove_entry = true }
       q.parse!
     }
   end
@@ -749,54 +813,56 @@ class Webpecker
     data = nil
     readonly = @opt_timing || @opt_dont_check || @opt_dump_status || @opt_dump_template_data
     open_status(readonly) {|status|
-      if @opt_dump_status
+      if @opt_remove_entry
+        status.reject! {|h| ARGV.include? h['URI'] } #xx: LinkURI, etc.
+      elsif @opt_dump_status
         pp status
-        return
-      end
-      entries = create_entries(config, status, readonly)
-      if @opt_timing
-        entries = entries.map {|entry|
-          [entry.next_timing.localtime, entry]
-        }.sort
-        now = Time.now
-        entries.each {|timing, entry|
-          if now && timing > now
-            puts "#{now}  --- now ---"
-            now = nil
-          end
-          h = entry.presentation_data
-          s = "#{timing}: #{h['title']}"
-          s << " (#{h['Author']})" if h['Author']
-          puts s
-        }
       else
-        unless readonly
-          entries.concurrent_map {|entry|
-            next unless entry.update_info?
-            entry.check if entry.should_check? && (@opt_force_check || entry.timing_check)
-          }
-          entries.concurrent_map {|entry|
-            next if entry.update_info?
-            entry.check if entry.should_check? && (@opt_force_check || entry.timing_check)
-          }
-        end
-        entries.reject! {|entry| entry.update_info? }
-        data = {
-          "antenna" =>
-          entries.map {|entry| entry.presentation_data }.sort_by {|h|
-            # [h['last-modified'], h['title']]
-            if h['last-modified-found']
-              [1, h['last-modified-found'], h['last-modified'], h['title']]
-            else
-              [0, h['last-modified'], h['title']]
+        entries = create_entries(config, status, readonly)
+        if @opt_timing
+          entries = entries.map {|entry|
+            [entry.next_timing.localtime, entry]
+          }.sort
+          now = Time.now
+          entries.each {|timing, entry|
+            if now && timing > now
+              puts "#{now}  --- now ---"
+              now = nil
             end
-          }.reverse
-        }
-        if @opt_dump_template_data
-          pp data
-          return
+            h = entry.presentation_data
+            s = "#{timing}: #{h['title']}"
+            s << " (#{h['Author']})" if h['Author']
+            puts s
+          }
+        else
+          unless readonly
+            entries.concurrent_map {|entry|
+              next unless entry.update_info?
+              entry.check if entry.should_check? && (@opt_force_check || entry.timing_check)
+            }
+            entries.concurrent_map {|entry|
+              next if entry.update_info?
+              entry.check if entry.should_check? && (@opt_force_check || entry.timing_check)
+            }
+          end
+          entries.reject! {|entry| entry.update_info? }
+          data = {
+            "antenna" =>
+            entries.map {|entry| entry.presentation_data }.sort_by {|h|
+              # [h['last-modified'], h['title']]
+              if h['last-modified-found']
+                [1, h['last-modified-found'], h['last-modified'], h['title']]
+              else
+                [0, h['last-modified'], h['title']]
+              end
+            }.reverse
+          }
+          if @opt_dump_template_data
+            pp data
+            return
+          end
+          generate_output(data)
         end
-        generate_output(data)
       end
     }
     #PP.pp(data, STDERR) if $VERBOSE
