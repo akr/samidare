@@ -216,17 +216,16 @@ class Entry
       if content_type == 'text/html' && !content_encoding
         t = HTree.parse(content.decode_charset(content_charset))
         h['extractedTitle'] = t.title
-        if @config['ChecksumXPath']
-          t = Mconv.conv(content, "utf-8", content_charset)
-          t = Tidy.parse_string(t, "output-xml"=>true, :encoding=>"UTF-8", :wrap=>nil).dump
-          t.gsub!(%r{<\n\/}, '</')
-          begin
-            checksum_target = ''
-            REXML::Document.new(t).elements.each(@config['ChecksumXPath']) {|e| e.write checksum_target }
-            h['checksum'] = checksum_target.sum
-          rescue REXML::ParseException
-          end
+
+        if ignore_path = @config['IgnorePath']
+          ignore_path = ignore_path.split(/\s+/)
+        else
+          ignore_path = []
         end
+        t = t.filter_with_path {|e, path|
+          (HTree === e && (e.tagname == 'style' || e.tagname == 'script')) || !ignore_path.include?(path)
+        }
+        h['checksum'] = t.rcdata.sum
       end
       h['checksum'] = content.sum unless h['checksum']
 
@@ -458,7 +457,7 @@ class Entry
       if h['status'] == '200'
         if !result
           result = h
-        elsif result['checksum'] != h['checksum'] || result['ChecksumXPath'] != h['ChecksumXPath']
+        elsif result['checksum'] != h['checksum'] || result['IgnorePath'] != h['IgnorePath']
           return result
         else
           result = h

@@ -260,7 +260,7 @@ module HTree
     end
 
     def filter_with_path(path)
-      return self, path if self.empty_element?
+      return self if self.empty_element?
       elts = []
       self.each_with_path(path) {|elt, child_path|
         if yield elt, child_path
