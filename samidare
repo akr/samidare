@@ -635,6 +635,7 @@ class Entry
     h['title'] = h['Title']
     h['author'] = h['Author']
     h['last-modified'] = '- no log -'
+    h['info'] = ''
     unless logseq.empty?
       if l = find_first_200_with_current_content
         h['last-modified-found'] = l['clientDateBeg'] # xxx: clientDateEnd is better?
@@ -643,13 +644,14 @@ class Entry
           l2 = find_last_200
           unless l.equal? l2
             if l['lastModifiedString'] != l2['lastModifiedString']
-              h['last-modified'] << '[Touch]'
+              h['info'] << '[Touch]'
             else
-              h['last-modified'] << '[NoIMS]'
+              h['info'] << '[NoIMS]'
             end
           end
         else
-          h['last-modified'] = l['clientDateBeg'].getlocal.iso8601 + '[NoLM]'
+          h['last-modified'] = l['clientDateBeg'].getlocal.iso8601
+          h['info'] << '[NoLM]'
         end
         h['title'] ||= l['extractedTitle'] if l['extractedTitle']
         h['author'] ||= l['extractedAuthor'] if l['extractedAuthor']
