@@ -169,7 +169,7 @@ class Entry
         h['contentEncoding'] = content_encoding if content_encoding
       end
       if content_type == 'text/html' && !content_encoding
-        t = Tidy.parse_string(content, :encoding=>content_charset).head.children.find {|n| n.title? }.children[0]
+        t = Tidy.parse_string(content, :encoding=>content_charset).head.children.find {|n| n.title? && !n.children.empty? && !n.children[0].text.empty? }.children[0]
         h['extractedTitle'] = t.text.chomp.decode_charset(content_charset).decode_html_escape.gsub(/\0/, '') if t
         if @config['ChecksumXPath']
           t = Iconv.iconv("utf-8", content_charset, content).join
@@ -210,42 +210,25 @@ class Entry
       end
     }
     log.each {|h| h.delete 'content' }
-    if old_lirs
-      begin
-        l1 = LIRS.decode(old_lirs)
-        l2 = LIRS.decode(new_lirs)
-        l1.each {|r1|
-          uri = r1.target_url
-          if r2 = l2[uri] and r1.last_modified != r2.last_modified
-            if e = ENTRIES[uri]
-              t1 = Time.at(r1.last_modified.to_i)
-              t2 = Time.at(r2.last_modified.to_i)
-              if e.find_last_success['clientDateEnd'] < t2 #xxx: not so acculate.
-                p [:LIRS_UPDATE, @config['URI'], uri, t1, t2]
-                ENTRIES[uri].hash['_update_info'] = true
-              end
-            end
-          end
-        }
-      rescue
-        # External update information is a just hint.
-        # So it is ignorable even if it has some trouble.
-      end
-    else
-      begin
-        l1 = LIRS.decode(new_lirs)
-        l1.each {|r1|
-          uri = r1.target_url
+    begin
+      l1 = LIRS.decode(old_lirs) if old_lirs
+      l2 = LIRS.decode(new_lirs)
+      l2.each {|r2|
+        uri = r2.target_url
+        if !old_lirs or (r2 = l2[uri] and r1.last_modified != r2.last_modified)
           if e = ENTRIES[uri]
-            t1 = Time.at(r1.last_modified.to_i)
-            if e.find_last_success['clientDateEnd'] < t1 #xxx: not so acculate.
-              p [:LIRS_UPDATE, @config['URI'], uri, t1]
+            t1 = Time.at(r1.last_modified.to_i) if old_lirs
+            t2 = Time.at(r2.last_modified.to_i)
+            if e.find_last_success['clientDateEnd'] < t2 #xxx: not so acculate.
+              p [:LIRS_UPDATE, @config['URI'], uri, t1, t2]
               ENTRIES[uri].hash['_update_info'] = true
             end
           end
-        }
-      rescue
-      end
+        end
+      }
+    rescue
+      # External update information is a just hint.
+      # So it is ignorable even if it has some trouble.
     end
   end
 
@@ -634,7 +617,9 @@ class Webpecker
           [entry.next_timing.localtime, entry]
         }.sort.each {|timing, entry|
           h = entry.presentation_data
-          puts "#{timing}: #{h['title']}"
+          s = "#{timing}: #{h['title']}"
+          s << "(#{h['Author']})" if h['Author']
+          puts s
         }
       else
         unless @opt_dont_check
