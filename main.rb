@@ -17,6 +17,7 @@ require 'lirs'
 require 'autofile'
 require 'htree'
 require 'string-util'
+require 'tempfile'
 
 CONFIG_FILENAME = 'config.yml'
 STATUS_FILENAME = 'status.rm'
@@ -304,20 +305,26 @@ class Entry
       end
     end
 
-    if ignore_path = @config['IgnorePath']
+    t, checksum_filter = ignore_tree(t)
+    log['checksum_filter'] = checksum_filter unless checksum_filter.empty?
+    log['checksum_filtered'] = t.rcdata.sum
+  end
+
+  def ignore_tree(tree, config=@config)
+    if ignore_path = config['IgnorePath']
       ignore_path = ignore_path.split(/\s+/)
     else
       ignore_path = []
     end
     ignore_pattern = path2pattern(*ignore_path)
 
-    if ignore_class = @config['IgnoreClass']
+    if ignore_class = config['IgnoreClass']
       ignore_class = ignore_class.split(/\s+/)
     else
       ignore_class = []
     end
 
-    t = t.filter_with_path {|e, path|
+    t = tree.filter_with_path {|e, path|
       not ( 
         (HTree::Elem === e && (e.tagname == 'style' ||
                                e.tagname == 'script')) ||
@@ -325,11 +332,13 @@ class Entry
         (HTree::Elem === e && ignore_class.include?(e.stag.fetch_attribute_text('class', nil)))
       )
     }
-    log['checksum_filtered'] = t.rcdata.sum
 
     # xxx: checksum_filter format should be changed.
-    log['checksum_filter'] = ['IgnorePath', *ignore_path] if !ignore_path.empty?
-    (log['checksum_filter'] ||= []).concat ['IgnoreClass', *ignore_class] if !ignore_class.empty?
+    checksum_filter = []
+    checksum_filter.concat ['IgnorePath', *ignore_path] if !ignore_path.empty?
+    checksum_filter.concat ['IgnoreClass', *ignore_class] if !ignore_class.empty?
+
+    [t, checksum_filter]
   end
 
   def examine_lirs(decoded_content, log)
@@ -779,7 +788,7 @@ class Entry
     @status = hash.dup.update(@status)
   end
 
-  def dump_filenames2
+  def recent_log2
     if logseq = @status['_log']
       log1 = log2 = nil
       logseq.reverse_each {|log|
@@ -791,9 +800,75 @@ class Entry
           break unless content_unchanged(log1, log2)
         end
       }
-      puts log1['content'].pathname if log1
-      puts log2['content'].pathname if log2
+      [log1, log2]
     end
+  end
+
+  def dump_filenames2
+    log1, log2 = recent_log2
+    puts log1['content'].pathname if log1
+    puts log2['content'].pathname if log2
+  end
+
+  def diff_content
+    log1, log2 = recent_log2
+    return unless log1 && log2
+    filename1 = log1['content'].pathname
+    filename2 = log2['content'].pathname
+    tree1, checksum_filter1 = ignore_tree(HTree.parse(File.read(filename1).decode_charset_guess), log1)
+    tree2, checksum_filter2 = ignore_tree(HTree.parse(File.read(filename2).decode_charset_guess), log2)
+
+    text1 = []
+    tree1.traverse_with_path {|n, path|
+      text1 << [n.text, path] if HTree::Text === n
+    }
+
+    text2 = []
+    tree2.traverse_with_path {|n, path|
+      text2 << [n.text, path] if HTree::Text === n
+    }
+
+    puts "checksum1: #{tree1.rcdata.sum} #{filename1} #{checksum_filter1.inspect}"
+    puts "checksum2: #{tree2.rcdata.sum} #{filename2} #{checksum_filter2.inspect}"
+
+    [text1.length, text2.length].min.times {
+      t1, p1 = text1.last
+      t2, p2 = text2.last
+      t1 = t1.gsub(/\s+/, '') if t1
+      t2 = t2.gsub(/\s+/, '') if t2
+      if t1 == t2
+        text1.pop
+        text2.pop
+      else
+        break
+      end
+    }
+
+    num = 10
+    0.upto([text1.length, text2.length].max - 1) {|i|
+      t1, p1 = text1[i]
+      t2, p2 = text2[i]
+      t1 = t1.gsub(/\s+/, '') if t1
+      t2 = t2.gsub(/\s+/, '') if t2
+      if t1 != t2
+        pp [text1[i], text2[i]]
+        num -= 1
+        if num == 0
+          puts "..."
+          break
+        end
+      end
+    }
+
+    tf1 = Tempfile.new('htmldiff1')
+    PP.pp(tree1, tf1)
+    tf1.close
+
+    tf2 = Tempfile.new('htmldiff2')
+    PP.pp(tree2, tf2)
+    tf2.close
+
+    system("diff -u #{tf1.path} #{tf2.path}")
   end
 end
 
@@ -997,6 +1072,7 @@ class Samidare
     @opt_remove_entry = nil
     @opt_dump_filenames = nil
     @opt_dump_filenames2 = nil
+    @opt_diff_content = nil
     ARGV.options {|q|
       q.banner = 'webpecker [opts]'
       q.def_option('--help', 'show this message') {puts q; exit(0)}
@@ -1014,6 +1090,7 @@ class Samidare
       q.def_option('--dump-filenames2', 'dump two recent filenames') { @opt_dump_filenames2 = true }
       q.def_option('--remove-entry', 'remove entry') { @opt_remove_entry = true }
       q.def_option('--single-thread', 'diable multi-threading') { $opt_max_threads = 1 }
+      q.def_option('--diff-content', 'show difference') { @opt_diff_content = true }
       q.parse!
     }
     require 'resolv-replace' if $opt_max_threads != 1
@@ -1056,6 +1133,14 @@ class Samidare
     }
   end
 
+  def diff_content(entries)
+    entries.each {|ent|
+      unless (ARGV & ent.related_uris).empty?
+        ent.diff_content
+      end
+    }
+  end
+
   def create_entries(config, status, readonly=false)
     logs = {}
     status.each {|status_ent|
@@ -1091,7 +1176,8 @@ class Samidare
       @opt_dump_status ||
       @opt_dump_template_data ||
       @opt_dump_filenames ||
-      @opt_dump_filenames2
+      @opt_dump_filenames2 ||
+      @opt_diff_content
     open_status(readonly) {|status|
       entries = create_entries(config, status, readonly)
       if @opt_dump_status
@@ -1100,6 +1186,8 @@ class Samidare
         dump_filenames(entries)
       elsif @opt_dump_filenames2
         dump_filenames2(entries)
+      elsif @opt_diff_content
+        diff_content(entries)
       elsif @opt_timing
         entries = entries.map {|entry|
           [entry.next_timing.localtime, entry]
