@@ -664,12 +664,24 @@ class Entry
         ll << log # re-add `log'.
       end
 
+      num_discards = 0
+
       nlogs = @config.fetch('NumLogs', 2)
       #pp logs.map {|ll| ll.map {|l| StatusMap[l['status']] + "#{l['checksum']}" } }
       if nlogs < logs.length
-        logs[0...-nlogs] = []
+        num_discards = logs.length - nlogs
       end
       #pp logs.map {|ll| ll.map {|l| StatusMap[l['status']] + "#{l['checksum']}" } }
+
+      if log_expire = @config['LogExpire']
+        log_expire = parse_time_suffix(log_expire) || 0 if String === log_expire
+        limit = Time.now - log_expire
+        while 0 < num_discards && limit < logs[num_discards-1][0]['clientDateBeg']
+          num_discards -= 1
+        end
+      end
+
+      logs[0, num_discards] = []
 
       logseq.replace logs.flatten
     else
@@ -678,6 +690,21 @@ class Entry
 
     unless logseq.last.equal? log
       raise "current log is not added [bug]"
+    end
+  end
+
+  def parse_time_suffix(str)
+    case str
+    when /\A(\d+)(s|sec|second)?\z/
+      $1.to_i
+    when /\A(\d+)(m|min|minute)\z/
+      $1.to_i * 60
+    when /\A(\d+)(h|hour)\z/
+      $1.to_i * 60 * 60
+    when /\A(\d+)(d|day)\z/
+      $1.to_i * 60 * 60 * 24
+    else
+      nil
     end
   end
 
