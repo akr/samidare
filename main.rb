@@ -909,6 +909,15 @@ module Enumerable
   end
 end
 
+# Don't use &apos; because HTML4.01 has no such entity.
+# [ruby-talk:74223]
+class REXML::Attribute
+  def to_string
+    %Q<#@expanded_name="#{to_s().gsub(/"/, '&quot;')}">
+  end
+end
+REXML::DocType::DEFAULT_ENTITIES.delete 'apos'
+
 class Samidare
   def open_lock(filename, nonblock=false)
     dirname = File.dirname filename
@@ -1038,7 +1047,6 @@ class Samidare
 
   def generate_output(data)
     result = Tempura::Template.new_with_string(File.read(@opt_template).decode_charset_guess, CharConvInternal).expand(data)
-    result.gsub!(/&apos;/, "'")
     result << "\n" if /\n\z/ !~ result
     if @opt_output != '-'
       output_file(@opt_output, result)
