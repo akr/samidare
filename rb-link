@@ -25,7 +25,7 @@ def expand_require(out, filename, dirs, main, included={})
 	out.print "#", line
       elsif test
 	out.print "#", line
-      elsif /^\s*require '([^']*)'/ =~ line && %r{^/} !~ (req = $1)
+      elsif /^require '([^']*)'/ =~ line && %r{^/} !~ (req = $1)
 	if included[req]
 	  out.print "#", line
 	else
