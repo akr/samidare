@@ -16,7 +16,7 @@ require 'pp'
 require 'optparse'
 require 'rexml/document'
 
-CONFIG_FILENAME = 'config.yaml'
+CONFIG_FILENAME = 'config.yml'
 STATUS_FILENAME = 'status.rm'
 
 TEMPLATE_LATEST_FILENAME = 't.latest.html'
