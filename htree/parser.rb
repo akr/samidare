@@ -166,7 +166,7 @@ module HTree
         included_tags |= included_tags2 if included_tags2
         containable_tags = (possible_tags | included_tags) - excluded_tags
         fixed_elts = []
-        rest = elem.elts.dup
+        rest = elem.elts
         until rest.empty?
           elt = rest.shift
           if Elem === elt

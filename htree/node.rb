@@ -17,6 +17,10 @@ module HTree
     }
   end
 
+  def HTree.encode_rcdata(str)
+    str.gsub(/&/, '&amp;')
+  end
+
   module Node
     def text 
       HTree.decode_rcdata(self.rcdata)
@@ -32,9 +36,11 @@ module HTree
     include Node
 
     def init_container(elts)
-      @elts = elts
+      @elts = elts ? elts.dup : nil
     end
-    attr_reader :elts
+    def elts
+      @elts && @elts.dup
+    end
 
     def each
       return unless @elts
@@ -216,9 +222,8 @@ module HTree
 
     def initialize(stag, elts=nil, etag=nil)
       @stag = stag
-      @elts = elts
       @etag = etag
-      init_container(elts) #xxx elts may be nil
+      init_container(elts)
     end
     attr_reader :stag, :etag
 
