@@ -47,6 +47,10 @@ class Entry
   attr_reader :status
   attr_reader :config
 
+  def uri
+    @config['URI']
+  end
+
   def related_uris
     result = []
     result << @config['URI']
@@ -864,9 +868,7 @@ class Samidare
     data = nil
     readonly = @opt_timing || @opt_dont_check || @opt_dump_status || @opt_dump_template_data
     open_status(readonly) {|status|
-      if @opt_remove_entry
-        status.reject! {|h| ARGV.include? h['URI'] } #xxx: LinkURI, etc.
-      elsif @opt_dump_status
+      if @opt_dump_status
         dump_status(status)
       else
         entries = create_entries(config, status, readonly)
@@ -885,6 +887,14 @@ class Samidare
             s << " (#{h['Author']})" if h['Author']
             puts s
           }
+        elsif @opt_remove_entry
+          removing_uris = {}
+          entries.each {|e|
+            unless (e.related_uris & ARGV).empty?
+              removing_uris[e.uri] = true
+            end
+          }
+          status.reject! {|h| removing_uris[h['URI']] }
         else
           unless readonly
             entries.concurrent_map {|entry|
