@@ -242,9 +242,10 @@ class Entry
         t = t.filter_with_path {|e, path|
           (HTree === e && (e.tagname == 'style' || e.tagname == 'script')) || !ignore_path.include?(path)
         }
-        log['checksum'] = t.rcdata.sum
+        log['checksum_filtered'] = t.rcdata.sum
+        log['checksum_filter'] = ['IgnorePath', *ignore_path]
       end
-      log['checksum'] = content.sum unless log['checksum']
+      log['checksum'] = content.sum
 
       log['content'] = AutoFile.new(uri, content, content_type)
       if !content_encoding
@@ -423,7 +424,7 @@ class Entry
           logs.last << l
         elsif StatusMap[l['status']] == 'n'
           logs.last << l
-        elsif logs.last.last['checksum'] && l['checksum'] && logs.last.last['checksum'] == l['checksum']
+        elsif content_unchanged(logs.last.last, l)
           logs.last << l
         else
           logs << [l]
@@ -460,13 +461,24 @@ class Entry
     end
   end
 
+  def content_unchanged(log1, log2)
+    return true if log1['checksum'] &&
+                   log2['checksum'] &&
+                   log1['checksum'] == log2['checksum']
+    return true if log1['checksum_filtered'] &&
+                   log2['checksum_filtered'] &&
+                   log1['checksum_filter'] == log2['checksum_filter'] &&
+                   log1['checksum_filtered'] == log2['checksum_filtered']
+    false
+  end
+
   def find_first_200_with_current_content
     result = nil
     @hash['_log'].reverse_each {|h|
       if h['status'] == '200'
         if !result
           result = h
-        elsif result['checksum'] != h['checksum'] || result['IgnorePath'] != h['IgnorePath']
+        elsif !content_unchanged(result, h)
           return result
         else
           result = h
