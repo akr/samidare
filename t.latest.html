@@ -13,7 +13,7 @@
       <h1 _child_="category">category</h1>
       <ol>
         <li _block_="entries//each//entry">
-        <span _self_="entry['last-modified'] ? entry['last-modified'].iso8601 : '- no log -'">title</span
+        <span _self_="entry['last-modified'] ? entry['last-modified'].strftime('%Y-%m-%d %H:%M') : '- no log -'">title</span
         ><span _self_="entry['info']">[info]</span>
         <a _attr_href="entry['linkURI']"
           ><span _self_="entry['title']"
