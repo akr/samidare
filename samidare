@@ -146,7 +146,12 @@ class Entry
     log['clientDateEnd'] = client_date_2 = Time.now
     STDERR.puts "#{client_date_2.iso8601} fetch end #{log['trouble'] || "#{log['status']} #{log['statusMessage']}"} #{uri}" if $VERBOSE
 
-    examine(page, meta, log) if page
+    begin
+      examine(page, meta, log) if page
+    rescue
+      p [:ERROR, uri, $!]
+      raise
+    end
 
     add_log(log)
     @hash.delete '_update_info'
@@ -154,7 +159,10 @@ class Entry
 
   def fetch(log)
     uri = @config['URI']
-    opts = {"User-Agent"=>"samidare"}
+    opts = {
+      "Accept-Encoding"=>"gzip, deflate",
+      "User-Agent"=>"samidare"
+    }
     if h = find_last_200 and @hash['_log'].last['status'] != '412'
       # publicfile rejects requests which have If-None-Match as:
       #   412 I do not accept If-None-Match
@@ -279,7 +287,7 @@ class Entry
       if /\A\x1f\x8b/ =~ content # gziped?
         begin
           content = content.decode_gzip
-        rescue Zlib::BufError
+        rescue Zlib::Error
         end
       end
     else
@@ -289,7 +297,7 @@ class Entry
         when 'gzip', 'x-gzip'
           begin
             content = content.decode_gzip
-          rescue Zlib::BufError
+          rescue Zlib::Error
             break
           end
         when 'deflate'
@@ -638,7 +646,7 @@ module Enumerable
   end
 end
 
-class Webpecker
+class Samidare
   def open_lock(filename, nonblock=false)
     dirname = File.dirname filename
     basename = File.basename filename
@@ -897,5 +905,5 @@ class Webpecker
 end
 
 if $0 == __FILE__
-  Webpecker.new.main
+  Samidare.new.main
 end
