@@ -163,7 +163,15 @@ class Entry
     STDERR.puts "#{client_date_1.iso8601} fetch start #{uri}" if $VERBOSE
     page, meta = fetch(log)
     log['clientDateEnd'] = client_date_2 = Time.now
-    STDERR.puts "#{client_date_2.iso8601} fetch end #{log['trouble'] || "#{log['status']} #{log['statusMessage']}"} #{uri}" if $VERBOSE
+    if $VERBOSE
+      STDERR.puts "#{client_date_2.iso8601} fetch end #{log['trouble'] || "#{log['status']} #{log['statusMessage']}"} #{uri}"
+      if log['trouble'] && log['backtrace']
+        STDERR.puts "| #{log['trouble']}"
+        log['backtrace'].each {|pos|
+          STDERR.puts "| #{pos}"
+        }
+      end
+    end
 
     begin
       examine(page, meta, log) if page
@@ -200,6 +208,7 @@ class Entry
     status = nil
     status_message = nil
     trouble = nil
+    backtrace = nil
     begin
       page = timeout(@config['Timeout'] || 200) { URI.parse(uri).read(opts) }
       meta = page.meta
@@ -218,12 +227,14 @@ class Entry
       end
     rescue StandardError, TimeoutError
       trouble = $!.message
+      backtrace = $!.backtrace
     end
 
     log['status'] = status
     log['statusMessage'] = status_message if status_message
     log['serverDateString'] = meta['date'] if meta && meta['date']
     log['trouble'] = trouble if trouble
+    log['backtrace'] = backtrace if backtrace
 
     if @config['LogMeta']
       log['logSendHeader'] = opts
