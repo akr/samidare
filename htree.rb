@@ -323,22 +323,6 @@ module HTree
   EmptyTagHash = {}
   EmptyTags.each {|tag| EmptyTagHash[tag] = tag }
 
-  def HTree.parse_empties(str)
-    frags = []
-    HTree.scan(str) {|f|
-      frags << f
-    }
-    last_tag = nil
-    frags.reverse_each {|f|
-      if f.mark == :stag && EmptyTagHash[f.tagname] &&
-         !(last_tag && last_tag.mark == :etag && last_tag.tagname == f.tagname)
-        f.mark = :empty
-      end
-      last_tag = f if f.mark == :stag || f.mark == :etag
-    }
-    frags
-  end
-
   head_misc = %w[script style meta link object]
   heading = %w[h1 h2 h3 h4 h5 h6]
   list = %w[ul ol dir menu]
