@@ -11,6 +11,11 @@
   - URI: http://www.jin.gr.jp/~nahi/link-ruby-temp.html
     UpdateElement: tr
 
+# tDiary
+-
+  - IgnoreClass: referer todo hexe counter counter-today counter-yesterday footer calendar adminmenu search
+  - http://www.rubyist.net/~matz/
+
 - URI: http://lambda.weblogs.com/xml/rss.xml
   LinkURI: http://lambda.weblogs.com/
   Title: Lambda the Ultimate
@@ -25,7 +30,6 @@
 - URI: http://www.jate.or.jp/jp/tanmatsu/
   Title: JATE tanmatsu list
 
-- http://www.rubyist.net/~matz/
 
 -
   - DefaultCharset: Shift_JIS
