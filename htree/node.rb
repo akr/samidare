@@ -28,32 +28,18 @@ module HTree
     end
   end
 
-  class Doc
-    include Node 
-
-    def initialize(elts)
+  module Container
+    def init_container(elts)
       @elts = elts
     end
 
-    def pretty_print(pp)
-      pp.object_group(self) { @elts.each {|elt| pp.breakable; pp.pp elt } }
-    end
-    alias inspect pretty_print_inspect
-
-=begin
-    def root
-      @elts.each {|e|
-        return e if Elem === e
-      }
-      nil
-    end
-=end
-
     def each
+      return unless @elts
       @elts.each {|e| yield e }
     end
 
     def each_with_path(prefix=nil)
+      return unless @elts
       count = {}
       @elts.each {|elt|
         node_test = elt.node_test
@@ -77,6 +63,7 @@ module HTree
 
     def traverse
       yield self
+      return unless @elts
       @elts.each {|elt|
         elt.traverse {|e| yield e }
       }
@@ -89,6 +76,45 @@ module HTree
         self.traverse {|e| yield e if Elem === e }
       end
     end
+
+    def raw_string
+      str = ''
+      if @elts
+        @elts.each {|elt| str << elt.raw_string }
+      end
+      str
+    end
+
+    def rcdata
+      text = ''
+      if @elts
+        @elts.each {|elt| text << elt.rcdata }
+      end
+      text
+    end
+  end
+
+  class Doc
+    include Node 
+    include Container
+
+    def initialize(elts)
+      init_container(elts)
+    end
+
+    def pretty_print(pp)
+      pp.object_group(self) { @elts.each {|elt| pp.breakable; pp.pp elt } }
+    end
+    alias inspect pretty_print_inspect
+
+=begin
+    def root
+      @elts.each {|e|
+        return e if Elem === e
+      }
+      nil
+    end
+=end
 
     def traverse_with_path
       yield self, '/'
@@ -181,26 +207,17 @@ module HTree
       nil
     end
 
-    def raw_string
-      str = ''
-      @elts.each {|elt| str << elt.raw_string }
-      str
-    end
-
-    def rcdata
-      text = ''
-      @elts.each {|elt| text << elt.rcdata }
-      text
-    end
   end
 
   class Elem
     include Node
+    include Container
 
     def initialize(stag, elts=nil, etag=nil)
       @stag = stag
       @elts = elts
       @etag = etag
+      init_container(elts) #xxx elts may be nil
     end
     attr_reader :stag, :elts, :etag
 
@@ -216,42 +233,6 @@ module HTree
       @stag.tagname
     end
     alias node_test tagname
-
-    def each
-      return unless @elts
-      @elts.each {|e| yield e }
-    end
-
-    def each_with_path(prefix=nil)
-      return unless @elts
-      count = {}
-      @elts.each {|elt|
-        node_test = elt.node_test
-        count[node_test] ||= 0
-        count[node_test] += 1
-      }
-      pos = {}
-      @elts.each {|elt|
-        node_test = elt.node_test
-        pos[node_test] ||= 0
-        n = pos[node_test] += 1
-        child_path = node_test
-        child_path += "[#{n}]" unless n == 1 && count[node_test] == 1
-        if prefix
-          yield elt, "#{prefix}/#{child_path}"
-        else
-          yield elt, child_path
-        end
-      }
-    end
-
-    def traverse
-      yield self
-      return unless @elts
-      @elts.each {|elt|
-        elt.traverse {|e| yield e }
-      }
-    end
 
     def traverse_with_path(path)
       yield self, path
@@ -314,14 +295,6 @@ module HTree
         str << @etag.to_s if @etag
       end
       str
-    end
-
-    def rcdata
-      text = ''
-      if @elts
-        @elts.each {|elt| text << elt.rcdata }
-      end
-      text
     end
 
     def pretty_print(pp)
