@@ -292,14 +292,13 @@ class Entry
     return if %r{\.lirs(?:.gz)?\z} !~ uri
     return if log['extractedTitle'] && log['extractedAuthor']
 
-    uris = related_uris
-
-    LIRS.decode(decoded_content).each {|record|
-      if uris.include? record.target_url
-        log['extractedTitle'] = record.target_title
-        log['extractedAuthor'] = record.target_maintainer
-        break
-      end
+    lirs = LIRS.decode(decoded_content)
+    return if lirs.size != 1
+    
+    lirs.each {|record|
+      log['extractedTitle'] = record.target_title unless log['extractedTitle']
+      log['extractedAuthor'] = record.target_maintainer unless log['extractedAuthor']
+      log['extractedLinkURI'] = record.target_url unless log['extractedLinkURI']
     }
   rescue LIRS::Error
     # ignore invalid lirs file.
@@ -662,6 +661,7 @@ class Entry
     h['author'] = h['Author']
     h['last-modified'] = '- no log -'
     h['info'] = ''
+    h['linkURI'] = h['LinkURI']
     unless logseq.empty?
       if l = find_first_200_with_current_content
         h['last-modified-found'] = l['clientDateBeg'] # xxx: clientDateEnd is better?
@@ -681,6 +681,7 @@ class Entry
         end
         h['title'] ||= l['extractedTitle'] if l['extractedTitle']
         h['author'] ||= l['extractedAuthor'] if l['extractedAuthor']
+        h['linkURI'] ||= l['extractedLinkURI'] if l['extractedLinkURI']
       else
         l = logseq.last
         if l['status']
@@ -698,6 +699,7 @@ class Entry
     end
     h['title'] ||= h['LinkURI'] if h['LinkURI']
     h['title'] ||= h['URI']
+    h['linkURI'] ||= h['URI']
 
     h
   end
