@@ -2,7 +2,7 @@
 
 $KCODE = 'e'
 
-require 'xtemplate'
+require 'tempura/template'
 require 'open-uri'
 require 'uri'
 require 'time'
@@ -928,9 +928,15 @@ class Samidare
     end
   end
 
+  
+  module CharConvGuess
+    module_function
+    def to_u8(str) Mconv.conv(str, 'utf-8', Mconv.guess_charset(str)) end
+    def from_u8(str) Mconv.conv(str, Mconv.internal_mime_charset, 'utf-8') end
+  end
+
   def generate_output(data)
-    data = deep_copy(data)
-    result = XTemplate::XMLTemplate.new(File.read(@opt_template).decode_charset_guess).expand(data)
+    result = Tempura::Template.new(@opt_template, CharConvGuess).expand(data)
     result.gsub!(/&apos;/, "'")
     result << "\n" if /\n\z/ !~ result
     if @opt_output != '-'
