@@ -179,10 +179,10 @@ class Entry
     uri = @config['URI']
     opts = {
       "Accept-Encoding"=>"gzip, deflate",
-      "User-Agent"=>"samidare"
+      "User-Agent" => @config.fetch('UserAgent', 'samidare')
     }
     if h = find_last_200 and @status['_log'].last['status'] != '412'
-      # publicfile rejects requests which have If-None-Match as:
+      # DJB's publicfile rejects requests which have If-None-Match as:
       #   412 I do not accept If-None-Match
       # Since 412 means `Precondition Failed', samidare tries request without
       # precondition.  If it success, samidare may know new valid condition.
