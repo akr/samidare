@@ -303,7 +303,7 @@ class HTree
     }
     until stack.length == 1
       elts = stack.pop
-      stack.last.push elts[3..-1]
+      stack.last.push Elem.new(*elts[3..-1])
     end
     Doc.new(*stack.first[4..-1])
   end
