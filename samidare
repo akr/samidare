@@ -245,7 +245,14 @@ class Entry
 
   def decode_content_encoding(page, log)
     content = page
-    if !page.content_encoding.empty?
+    if page.content_encoding.empty?
+      if /\A\x1f\x8b/ =~ content # gziped?
+        begin
+          content = content.decode_gzip
+        rescue Zlib::BufError
+        end
+      end
+    else
       content_encoding = page.content_encoding.dup
       while !content_encoding.empty?
         case content_encoding.last
@@ -262,6 +269,7 @@ class Entry
         end
         content_encoding.pop
       end
+
       content_encoding = nil if content_encoding.empty?
       log['contentEncoding'] = content_encoding if content_encoding
     end
