@@ -525,7 +525,7 @@ class Entry
 end
 
 module Enumerable
-  def concurrent_map(max_threads=1, &block)
+  def concurrent_map(max_threads=8, &block)
     if max_threads == 1
       self.map(&block)
     else
