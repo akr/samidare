@@ -156,14 +156,14 @@ module HTree
 
     def title
       e = first_element('title')
-      e && e.text
+      e && e.text.strip
     end
 
     def author
       traverse_element("meta") {|e|
         begin
           next unless e.stag.fetch_attribute_text("name").downcase == "author"
-          author = e.stag.fetch_attribute_text("content")
+          author = e.stag.fetch_attribute_text("content").strip
           return author if !author.empty?
         rescue IndexError
         end
@@ -172,7 +172,7 @@ module HTree
       traverse_element("link") {|e|
         begin
           next unless e.stag.fetch_attribute_text("rev").downcase == "made"
-          author = e.stag.fetch_attribute_text("title")
+          author = e.stag.fetch_attribute_text("title").strip
           return author if !author.empty?
         rescue IndexError
         end
