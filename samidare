@@ -230,7 +230,7 @@ class Entry
         (HTree === e && e.tagname != 'style' && e.tagname != 'script') || !ignore_path.include?(path)
       }
       log['checksum_filtered'] = t.rcdata.sum
-      log['checksum_filter'] = ['IgnorePath', *ignore_path]
+      log['checksum_filter'] = ['IgnorePath', *ignore_path] if !ignore_path.empty?
     end
 
     if !content_encoding
@@ -269,7 +269,6 @@ class Entry
         end
         content_encoding.pop
       end
-
       content_encoding = nil if content_encoding.empty?
       log['contentEncoding'] = content_encoding if content_encoding
     end
