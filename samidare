@@ -135,10 +135,24 @@ class Entry
   def check
     uri = @config['URI']
     @hash['_log'] = [] unless @hash['_log']
-    log = @hash['_log']
+    logseq = @hash['_log']
 
-    client_date_1 = Time.now
+    log = @config.dup
+
+    log['clientDateBeg'] = client_date_1 = Time.now
     STDERR.puts "#{client_date_1.iso8601} fetch start #{uri}" if $VERBOSE
+    page, meta = fetch(log)
+    log['clientDateEnd'] = client_date_2 = Time.now
+    STDERR.puts "#{client_date_2.iso8601} fetch end #{log['trouble'] || "#{log['status']} #{log['statusMessage']}"} #{uri}" if $VERBOSE
+
+    examine(page, meta, log)
+
+    add_log(log)
+    @hash.delete '_update_info'
+  end
+
+  def fetch(log)
+    uri = @config['URI']
     opts = {"User-Agent"=>"samidare"}
     if h = find_last_200
       if @config.fetch('UseIfModifiedSince', true)
@@ -171,27 +185,30 @@ class Entry
     rescue StandardError, TimeoutError
       trouble = $!.message
     end
-    client_date_2 = Time.now
-    STDERR.puts "#{client_date_2.iso8601} fetch end #{trouble || "#{status} #{status_message}"} #{uri}" if $VERBOSE
 
-    h = @config.dup
-    h['status'] = status
-    h['statusMessage'] = status_message if status_message
-    h['serverDateString'] = meta['date'] if meta && meta['date']
+    log['status'] = status
+    log['statusMessage'] = status_message if status_message
+    log['serverDateString'] = meta['date'] if meta && meta['date']
+    log['trouble'] = trouble if trouble
 
     if @config['LogMeta']
-      h['logSendHeader'] = opts
-      h['logRecvHeader'] = meta
+      log['logSendHeader'] = opts
+      log['logRecvHeader'] = meta
     end
 
+    return page, meta
+  end
+
+  def examine(page, meta, log)
+    uri = @config['URI']
     if page
-      h['baseURI'] = page.base_uri.to_s if page.base_uri.to_s != uri
-      h['lastModifiedString'] = meta['last-modified'] if meta['last-modified']
-      h['eTag'] = meta['etag'] if meta['etag']
-      content_type = h['contentType'] = page.content_type if page.content_type
+      log['baseURI'] = page.base_uri.to_s if page.base_uri.to_s != uri
+      log['lastModifiedString'] = meta['last-modified'] if meta['last-modified']
+      log['eTag'] = meta['etag'] if meta['etag']
+      content_type = log['contentType'] = page.content_type if page.content_type
       content_charset = page.charset { @config['DefaultCharset'] || page.guess_charset }
       content_charset = content_charset.downcase
-      h['contentCharset'] = content_charset
+      log['contentCharset'] = content_charset
       content = page
       if !page.content_encoding.empty?
         content_encoding = page.content_encoding.dup
@@ -211,11 +228,11 @@ class Entry
           content_encoding.pop
         end
         content_encoding = nil if content_encoding.empty?
-        h['contentEncoding'] = content_encoding if content_encoding
+        log['contentEncoding'] = content_encoding if content_encoding
       end
       if content_type == 'text/html' && !content_encoding
         t = HTree.parse(content.decode_charset(content_charset))
-        h['extractedTitle'] = t.title
+        log['extractedTitle'] = t.title
 
         if ignore_path = @config['IgnorePath']
           ignore_path = ignore_path.split(/\s+/)
@@ -225,28 +242,20 @@ class Entry
         t = t.filter_with_path {|e, path|
           (HTree === e && (e.tagname == 'style' || e.tagname == 'script')) || !ignore_path.include?(path)
         }
-        h['checksum'] = t.rcdata.sum
+        log['checksum'] = t.rcdata.sum
       end
-      h['checksum'] = content.sum unless h['checksum']
+      log['checksum'] = content.sum unless log['checksum']
 
-      h['content'] = AutoFile.new(uri, content, content_type)
+      log['content'] = AutoFile.new(uri, content, content_type)
       if !content_encoding
         case @config['UpdateInfo']
         when 'lirs'
           check_lirs(content)
         when 'html'
-          check_html(h)
+          check_html(log)
         end
       end
     end
-
-    h['trouble'] = trouble if trouble
-    h['clientDateBeg'] = client_date_1
-    h['clientDateEnd'] = client_date_2
-
-    add_log(h)
-
-    @hash.delete '_update_info'
   end
 
   def check_lirs(new_lirs)
