@@ -98,7 +98,8 @@ module HTree
     def fold_element
       elts = []
       @elts.each {|elt|
-        elts << elt.fold_element {|e, es| yield e, es }
+        elt = elt.fold_element {|e, es| yield e, es }
+        elts << elt if elt
       }
       Doc.new(elts)
     end
@@ -240,7 +241,8 @@ module HTree
       if @elts
         elts = []
         @elts.each {|elt|
-          elts << elt.fold_element {|e, es| yield e, es }
+          elt = elt.fold_element {|e, es| yield e, es }
+          elts << elt
         }
         yield self, elts
       else
