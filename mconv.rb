@@ -72,6 +72,7 @@ module Mconv
          | [\xfc-\xfd][\x80-\xbf][\x80-\xbf][\x80-\xbf][\x80-\xbf][\x80-\xbf]
          )*\z/nx
   }
+  Preference = ['us-ascii', "iso-2022-jp", 'euc-jp', 'utf-8', 'shift_jis']
 
   def Mconv.guess_charset(str)
     guess_charset_list(str).first
@@ -93,13 +94,10 @@ module Mconv
     }
     max = count.values.max
     count.reject! {|k, v| v != max }
-    return [count.keys[0]] if count.size == 1
-    return ['us-ascii'] if count['us-ascii']
+    return count.keys if count.size == 1
     
     # xxx: needs more accurate guess
-    charsets = count.keys.sort
-    charsets = ["utf-8", "shift_jis"] if charsets == ["shift_jis", "utf-8"]
-    charsets
+    Preference.reject {|name| !count[name] }
   end
 
   def Mconv.minimize_charset(charset, string)
