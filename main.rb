@@ -1030,10 +1030,17 @@ class Samidare
   def load_config
     @configuration = {}
     config = config_flatten(File.open(CONFIG_FILENAME) {|f| YAML.load(f) })
-    config.each {|h|
+    config.each_with_index {|h, i|
       h.reject! {|k, v| /\A[A-Z]/ !~ k }
-      @configuration[h['URI']] = h
+      uri = h['URI']
+      if @configuration.include? uri
+        @configuration[uri].update h
+        config[i] = nil
+      else
+        @configuration[uri] = h
+      end
     }
+    config.compact!
     config
   end
 
