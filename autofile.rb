@@ -117,10 +117,10 @@ class AutoFile
     base = $` if /#{Regexp.union ext, *ExtSynonym[ext]}\z/i =~ base
 
     Thread.exclusive {
-      yield "#{PREFIX}#{base}#{ext}"
+      #yield "#{PREFIX}#{base}#{ext}"
       time = Time.now
       base << "_#{time.strftime('%m-%d')}"
-      yield "#{PREFIX}#{base}#{ext}"
+      #yield "#{PREFIX}#{base}#{ext}"
       base << "_#{time.strftime('%H:%M')}"
       yield "#{PREFIX}#{base}#{ext}"
       base << ":#{time.strftime('%S')}"
