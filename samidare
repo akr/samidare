@@ -925,14 +925,14 @@ class Samidare
     end
   end
 
-  module CharConvGuess
+  module CharConvInternal
     module_function
-    def to_u8(str) Mconv.conv(str, 'utf-8', Mconv.guess_charset(str)) end
-    def from_u8(str) Mconv.conv(str, Mconv.internal_mime_charset, 'utf-8') end
+    def to_u8(str) str.encode_charset('utf-8') end
+    def from_u8(str) str.decode_charset('utf-8') end
   end
 
   def generate_output(data)
-    result = Tempura::Template.new(@opt_template, CharConvGuess).expand(data)
+    result = Tempura::Template.new_with_string(File.read(@opt_template).decode_charset_guess, CharConvInternal).expand(data)
     result.gsub!(/&apos;/, "'")
     result << "\n" if /\n\z/ !~ result
     if @opt_output != '-'
