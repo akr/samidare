@@ -4,29 +4,23 @@
     <meta name="generator" content="samidare" />
   </head>
   <body>
-    <h1>General</h1>
-    <ol>
-      <li _block_="self['antenna'].find_all {|v| /2ch/ !~ v['URI'] }//each//entry">
-      <span _self_="entry['last-modified']">title</span><span _self_="entry['info']">[info]</span>
-      <a _attr_href="entry['linkURI']"><span _self_="entry['title']"/><span _if_="entry['author']"> (<span _self_="entry['author']">author</span>)</span></a>
-      </li>
-    </ol>
-
-    <h1>2ch</h1>
-    <ol>
-      <li _block_="self['antenna'].find_all {|v| /2ch/ =~ v['URI'] }//each//entry">
-      <span _self_="entry['last-modified']">title</span><span _self_="entry['info']">[info]</span>
-      <a _attr_href="entry['linkURI']"><span _self_="entry['title']"/><span _if_="entry['author']"> (<span _self_="entry['author']">author</span>)</span></a>
-      </li>
-    </ol>
-
-    <h1>Update information is taken from other system:</h1>
-    <ol>
-      <li _block_="self['update_info']//each//entry">
-      <span _self_="entry['last-modified']">title</span><span _self_="entry['info']">[info]</span>
-      <a _attr_href="entry['linkURI']"><span _self_="entry['title']"/><span _if_="entry['author']"> (<span _self_="entry['author']">author</span>)</span></a>
-      </li>
-    </ol>
+    <div _block_="
+      [
+        ['General', self['antenna'].find_all {|v| /2ch/ !~ v['URI'] }],
+        ['2ch', self['antenna'].find_all {|v| /2ch/ =~ v['URI'] }],
+        ['Update information is taken from other system:', self['update_info']]
+      ]//each//category,entries">
+      <h1 _child_="category">category</h1>
+      <ol>
+        <li _block_="entries//each//entry">
+        <span _self_="entry['last-modified']">title</span
+        ><span _self_="entry['info']">[info]</span>
+        <a _attr_href="entry['linkURI']"
+          ><span _self_="entry['title']"
+          /><span _if_="entry['author']"> (<span _self_="entry['author']">author</span>)</span></a>
+        </li>
+      </ol>
+    </div>
 
     <a href="latest.lirs.gz">latest.lirs.gz</a>
 

@@ -928,7 +928,6 @@ class Samidare
     end
   end
 
-  
   module CharConvGuess
     module_function
     def to_u8(str) Mconv.conv(str, 'utf-8', Mconv.guess_charset(str)) end
