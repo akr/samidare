@@ -99,7 +99,7 @@ module HTree
     # second argument for not-found?
     def first_element(name)
       self.traverse {|e|
-        next unless Elem === e || EmptyElem === e
+        next unless Elem === e
         next unless e.tagname == name
         return e
       }
@@ -127,12 +127,16 @@ module HTree
   class Elem
     include Node
 
-    def initialize(stag, elts=[], etag=nil)
+    def initialize(stag, elts=nil, etag=nil)
       @stag = stag
       @elts = elts
       @etag = etag
     end
     attr_reader :stag, :elts, :etag
+
+    def empty_element?
+      @elts == nil
+    end
 
     def tag
       @stag
@@ -144,10 +148,12 @@ module HTree
     alias node_test tagname
 
     def each
+      return unless @elts
       @elts.each {|e| yield e }
     end
 
     def each_with_path
+      return unless @elts
       count = {}
       @elts.each {|elt|
         node_test = elt.node_test
@@ -167,6 +173,7 @@ module HTree
 
     def traverse
       yield self
+      return unless @elts
       @elts.each {|elt|
         elt.traverse {|e| yield e }
       }
@@ -174,6 +181,7 @@ module HTree
 
     def traverse_with_path(path)
       yield self, path
+      return unless @elts
       each_with_path {|elt, relpath|
         elt.traverse_with_path("#{path}/#{relpath}") {|e, p|
           yield e, p
@@ -182,74 +190,47 @@ module HTree
     end
 
     def fold_element
-      elts = []
-      @elts.each {|elt|
-        elts << elt.fold_element {|e, es| yield e, es }
-      }
-      yield self, elts
+      if @elts
+        elts = []
+        @elts.each {|elt|
+          elts << elt.fold_element {|e, es| yield e, es }
+        }
+        yield self, elts
+      else
+        yield self, nil
+      end
     end
 
     def raw_string
       str = ''
       str << @stag.to_s if @stag
-      @elts.each {|elt| str << elt.raw_string }
-      str << @etag.to_s if @etag
+      if @elts
+        @elts.each {|elt| str << elt.raw_string }
+        str << @etag.to_s if @etag
+      end
       str
     end
 
     def rcdata
       text = ''
-      @elts.each {|elt| text << elt.rcdata }
+      if @elts
+        @elts.each {|elt| text << elt.rcdata }
+      end
       text
     end
 
     def pretty_print(pp)
-      pp.group(1, "{elem", "}") {
-        pp.breakable; pp.pp @stag
-        @elts.each {|elt| pp.breakable; pp.pp elt }
-        pp.breakable; pp.pp @etag
-      }
-    end
-    alias inspect pretty_print_inspect
-  end
-
-  class EmptyElem
-    include Node
-
-    def initialize(tag)
-      @tag = tag
-    end
-    attr_reader :tag
-
-    def tagname
-      @tag.tagname
-    end
-    alias node_test tagname
-
-    def each
-    end
-
-    def traverse
-      yield self
-    end
-
-    def traverse_with_path(path)
-      yield self, path
-    end
-
-    def fold_element
-      yield self, nil
-    end
-
-    def raw_string; @tag.to_s; end
-
-    def rcdata; '' end
-
-    def pretty_print(pp)
-      pp.group(1, '{', '}') {
-        pp.text self.class.name.sub(/.*::/,'').downcase
-        pp.breakable; pp.pp @tag.to_s
-      }
+      if @elts
+        pp.group(1, "{elem", "}") {
+          pp.breakable; pp.pp @stag
+          @elts.each {|elt| pp.breakable; pp.pp elt }
+          pp.breakable; pp.pp @etag
+        }
+      else
+        pp.group(1, '{emptyelem', '}') {
+          pp.breakable; pp.pp @stag
+        }
+      end
     end
     alias inspect pretty_print_inspect
   end

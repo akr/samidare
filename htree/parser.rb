@@ -10,7 +10,7 @@ module HTree
     }
     elts = parse_pairs(elts)
     elts.each_with_index {|elt, i|
-      if Elem === elt && !elt.etag && elt.stag.tagname == 'html'
+      if Elem === elt && !elt.empty_element? && !elt.etag && elt.stag.tagname == 'html'
         elts[i] = Elem.new(elt.stag, elt.elts, true)
       end
     }
@@ -65,7 +65,7 @@ module HTree
         elsif $4
           yield ETag.new($&)
         elsif $5
-          yield EmptyElem.new(STag.new($&))
+          yield Elem.new(STag.new($&))
         elsif $6
           yield Comment.new($&)
         elsif $7
@@ -137,7 +137,7 @@ module HTree
     rest = elts.dup
     until rest.empty?
       elt = rest.shift
-      if Elem === elt
+      if Elem === elt && !elt.empty_element?
         elem, rest2 = fix_elem(elt, TagInfo['/'].first, [], [])
         result << elem
         rest = rest2 + rest
@@ -154,7 +154,7 @@ module HTree
     else
       tagname = elem.tagname
       if EmptyTagHash[tagname]
-        return EmptyElem.new(elem.stag), elem.elts
+        return Elem.new(elem.stag), elem.elts
       else
         possible_tags, forbidden_tags2, additional_tags2 = TagInfo[tagname]
         possible_tags = possible_sibling_tags unless possible_tags
