@@ -149,7 +149,9 @@ module HTree
   end
 
   def HTree.fix_elem(elem, possible_sibling_tags, forbidden_tags, additional_tags)
-    if elem.etag
+    if elem.empty_element?
+      return elem, []
+    elsif elem.etag
       return Elem.new(elem.stag, fix_elts(elem.elts), elem.etag), []
     else
       tagname = elem.tagname
