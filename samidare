@@ -314,8 +314,8 @@ class Entry
   end
 
   def extract_html_check_key(log)
+    return {} unless log.include?('content')
     content = log['content'].content
-    return {} unless content
 
     entry_xpath = @config.fetch("UpdateEntry", "//a")
     check_xpath = @config.fetch("UpdateCheck", ".")
