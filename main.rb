@@ -461,8 +461,11 @@ class Entry
     old_lirs = nil
     logseq.reverse_each {|h|
       if h['content']
-        old_lirs = h['content'].content
-        break
+        begin
+          old_lirs = h['content'].content
+          break
+        rescue Errno::ENOENT
+        end
       end
     }
     begin
