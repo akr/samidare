@@ -356,7 +356,7 @@ if $0 == __FILE__
   }
   named_characters['apos'] = 39 # XML 1.0
   named_characters.instance_variable_set(:@mypp, true)
-  pat_named_characters = /\A#{Regexp.alt *named_characters.keys.sort}\z/
+  pat_named_characters = /\A#{Regexp.alt(*named_characters.keys.sort)}\z/
 
   element_content = {}
   dtd.elements.each {|elem|
