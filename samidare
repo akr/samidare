@@ -278,10 +278,19 @@ class Entry
   end
 
   def find_first_200_with_current_content
-    @hash['_log'].each {|h|
-      return h if h['status'] == '200'
+    result = nil
+    @hash['_log'].reverse_each {|h|
+      if h['status'] == '200'
+        if !result
+          result = h
+        elsif result['checksum'] != h['checksum'] || result['ChecksumXPath'] != h['ChecksumXPath']
+          return result
+        else
+          result = h
+        end
+      end
     }
-    nil
+    result
   end
 
   def find_last_200
