@@ -1,0 +1,18 @@
+<html xmlns:xt="http://xtemplate.sourceforge.net/xtemplate">
+  <h1>General</h1>
+  <ol>
+    <li xt:id="antenna[URI !~ '2ch']">
+      <xt:value-of xt:id="last-modified"/>
+      <a><xt:attribute name="href" id="LinkURI ? URI"/><xt:value-of id="title"/><xt:value-of id="[Author]"> (</xt:value-of><xt:value-of id="Author"/><xt:value-of id="[Author]">)</xt:value-of></a>
+    </li>
+  </ol>
+
+  <h1>2ch</h1>
+  <ol>
+    <li xt:id="antenna[URI =~ '2ch']">
+      <xt:value-of xt:id="last-modified"/>
+      <a><xt:attribute name="href" id="LinkURI ? URI"/><xt:value-of id="title"/><xt:value-of id="[Author]"> (</xt:value-of><xt:value-of id="Author"/><xt:value-of id="[Author]">)</xt:value-of></a>
+    </li>
+  </ol>
+
+</html>

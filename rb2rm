@@ -1,0 +1,11 @@
+#!/usr/bin/env ruby
+
+require 'amarshal'
+
+system("cp status.rm status.rm-")
+open("status.rb") {|input|
+  open("status.rm", "w") {|output|
+    Marshal.dump(AMarshal.load(input),output)
+  }
+}
+

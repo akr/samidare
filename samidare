@@ -1,0 +1,550 @@
+#!/usr/bin/env ruby
+
+$KCODE = 'e'
+
+require 'xtemplate'
+require 'open-uri'
+require 'uri'
+require 'time'
+require 'resolv-replace'
+require 'yaml'
+require 'tidy'
+require 'iconv'
+require 'timeout'
+require 'net/http'
+require 'pp'
+require 'optparse'
+require 'rexml/document'
+
+CONFIG_FILENAME = 'config.yaml'
+STATUS_FILENAME = 'status.rm'
+
+TEMPLATE_LATEST_FILENAME = 't.latest.html'
+OUTPUT_LATEST_FILENAME = 'latest.html'
+
+class Entry
+  def initialize(hash, config)
+    @hash = hash
+    @config = config
+  end
+  attr_reader :hash
+  attr_reader :config
+
+  def should_check?
+    ARGV.empty? or
+    ARGV.include?(@config['URI']) or
+    @config['LinkURI'] && ARGV.include?(@config['LinkURI'])
+  end
+
+  DefaultMinimumInterval = 5 * 60
+  DefaultMaximumInterval = 24 * 60 * 60
+  def timing_check
+    t1 = next_timing
+    t2 = Time.now
+    t1 <= t2
+  end
+
+  def next_timing
+    if e1 = find_first_error
+      e2 = find_last_error
+      e1t = e1['clientDateEnd']
+      e2t = e2['clientDateEnd']
+      if e1.equal? e2
+        e1t + min
+      else
+        e2t + (e2t - e1t)
+      end
+    elsif s1 = find_first_200
+      min = @config.fetch('MinimumInterval', DefaultMinimumInterval) # xxx: should support units other than second.
+      max = @config.fetch('MaximumInterval', DefaultMaximumInterval)
+      min = max if max < min
+      s2 = find_last_success
+      begin
+        s1t = Time.httpdate(s1['lastModifiedString']) +
+          ((s1['clientDateEnd'] || s1['clientDateBeg']) - Time.httpdate(s1['serverDateString']))
+      rescue
+        s1t = s1['clientDateEnd'] || s1['clientDateBeg']
+      end
+      s2t = s2['clientDateEnd'] || s2['clientDateBeg']
+      r = s2t + (s2t - s1t)
+      if r < s2t + min
+        s2t + min
+      elsif s2t + max < r
+        s2t + max
+      else
+        r
+      end
+    else
+      Time.now
+    end
+  end
+
+  def check
+    uri = @config['URI']
+
+    @hash['_log'] = [] unless @hash['_log']
+    log = @hash['_log']
+
+    client_date_1 = Time.now
+    STDERR.puts "#{client_date_1.iso8601} fetch start #{uri}" if $VERBOSE
+    opts = {"User-Agent"=>"webpecker"}
+    if h = find_last_200
+      if @config.fetch('UseIfModifiedSince', true)
+        opts['If-Modified-Since'] = h['lastModifiedString'] if h['lastModifiedString']
+      end
+      opts['If-None-Match'] = h['eTag'] if h['eTag']
+    end
+    PP.pp([uri, opts], STDERR) if $VERBOSE
+    page = nil
+    meta = nil
+    status = nil
+    status_message = nil
+    trouble = nil
+    begin
+      page = timeout(@config['Timeout'] || 200) { URI.parse(uri).read(opts) }
+      meta = page.meta
+      status = page.status[0]
+      status_message = page.status[1]
+    rescue OpenURI::HTTPError
+      if $!.io.status.first == '304'
+        meta = $!.io.meta
+        status = $!.io.status[0]
+        status_message = $!.io.status[1]
+      else
+        meta = $!.io.meta
+        status = $!.io.status[0]
+        status_message = $!.io.status[1]
+        trouble = "#{status} #{status_message}"
+      end
+    rescue StandardError, TimeoutError
+      trouble = $!.message
+    end
+    client_date_2 = Time.now
+    STDERR.puts "#{client_date_2.iso8601} fetch end #{uri}" if $VERBOSE
+
+    h = @config.dup
+    h['status'] = status
+    h['statusMessage'] = status_message if status_message
+    h['serverDateString'] = meta['date'] if meta['date']
+
+    if @config['LogMeta']
+      h['logSendHeader'] = opts
+      h['logRecvHeader'] = meta
+    end
+
+    if page
+      h['baseURI'] = page.base_uri.to_s if page.base_uri.to_s != uri
+      h['lastModifiedString'] = meta['last-modified'] if meta['last-modified']
+      h['eTag'] = meta['etag'] if meta['etag']
+      content_type = h['contentType'] = page.content_type if page.content_type
+      content_charset = page.charset { @config['DefaultCharset'] || page.guess_charset }
+      content_charset = content_charset.downcase
+      h['contentCharset'] = content_charset
+      content_encoding = h['contentEncoding'] = page.content_encoding if !page.content_encoding.empty?
+      if content_type == 'text/html' && !content_encoding
+        t = Tidy.parse_string(page, :encoding=>content_charset).head.children.find {|n| n.title? }.children[0]
+        h['extractedTitle'] = t.text.chomp.decode_charset(content_charset).decode_html_escape.gsub(/\0/, '') if t
+        if @config['ChecksumXPath']
+          t = Iconv.iconv("utf-8", content_charset, page).join
+          t = Tidy.parse_string(t, "output-xml"=>true, :encoding=>"UTF-8").dump
+          t.gsub!(%r{<\n\/}, '</')
+          begin
+            checksum_target = ''
+            REXML::Document.new(t).elements.each(@config['ChecksumXPath']) {|e| e.write checksum_target }
+            h['checksum'] = checksum_target.sum
+          rescue REXML::ParseException
+          end
+        end
+      end
+      h['checksum'] = page.sum unless h['checksum']
+    end
+
+    h['trouble'] = trouble if trouble
+    h['clientDateBeg'] = client_date_1
+    h['clientDateEnd'] = client_date_2
+
+    add_log(h)
+  end
+
+  StatusMap = {
+    '200' => 's', # Success
+    '304' => 'n', # Not-Modified
+  }
+  StatusMap.default = 'e' # Error
+
+  def add_log(h)
+    log = @hash['_log']
+    history = log.map {|l| StatusMap[l['status']] }.join + ' ' + StatusMap[h['status']]
+
+    case history
+    when /ee e/
+      log.pop
+    when /e e/
+    when / e/
+    when /e+ [sn]/
+      log.pop while !log.empty? && StatusMap[log.last['status']] == 'e'
+      history.sub!(/e+ /, ' ')
+    end
+
+    case history
+    when / e/
+    when ' s'
+    when 's s'
+      log.clear unless log[0]['checksum'] && h['checksum'] && log[0]['checksum'] == h['checksum']
+    when 's n'
+    when 'ss s'
+      (log[0]['checksum'] && h['checksum'] && log[0]['checksum'] == h['checksum']) ? log.pop : log.clear
+    when 'ss n'
+    when 'sn s'
+      (log[0]['checksum'] && h['checksum'] && log[0]['checksum'] == h['checksum']) ? log.pop : log.clear
+    when 'sn n'
+      log.pop
+    when 'ssn s'
+      (log[0]['checksum'] && h['checksum'] && log[0]['checksum'] == h['checksum']) ? (log.pop; log.pop) : log.clear
+    when 'ssn n'
+      log.pop
+    else
+      log.clear
+    end
+    log << h
+  end
+
+  def find_first_200
+    @hash['_log'].each {|h|
+      return h if h['status'] == '200'
+    }
+    nil
+  end
+
+  def find_last_200
+    @hash['_log'].reverse_each {|h|
+      return h if h['status'] == '200'
+    }
+    nil
+  end
+
+  def find_last_success
+    @hash['_log'].reverse_each {|h|
+      return h if StatusMap[h['status']] != 'e'
+    }
+    nil
+  end
+
+  def find_first_error
+    @hash['_log'].each {|h|
+      return h if StatusMap[h['status']] == 'e'
+    }
+    nil
+  end
+
+  def find_last_error
+    @hash['_log'].reverse_each {|h|
+      return h if StatusMap[h['status']] == 'e'
+    }
+    nil
+  end
+
+  def presentation_data
+    h = @config.dup
+    log = @hash['_log']
+    h.update @hash # xxx
+    h['title'] = h['Title']
+    h['last-modified'] = '- no log -'
+    unless log.empty?
+      if l = find_first_200
+        if l.include? 'lastModifiedString'
+          h['last-modified'] = Time.httpdate(l['lastModifiedString']).localtime.iso8601
+        else
+          h['last-modified'] = l['clientDateBeg'].getlocal.iso8601 + '[NoLM]'
+        end
+        h['title'] ||= l['extractedTitle'] if l['extractedTitle']
+      else
+        l = log.last
+        if l['status']
+          if l['statusMessage']
+            h['last-modified'] = "- #{l['status']} #{l['statusMessage']} -"
+          else
+            h['last-modified'] = "- #{l['status']} -"
+          end
+        elsif l['trouble']
+          h['last-modified'] = "- #{l['trouble']} -"
+        else
+          h['last-modified'] = '- no status -'
+        end
+      end
+    end
+    h['title'] ||= h['URI']
+
+    h
+  end
+
+  def merge(hash)
+    @hash = hash.dup.update(@hash)
+  end
+end
+
+module Enumerable
+  def concurrent_map(max_threads=8)
+    arr = self.to_a.dup
+    queue = (0...arr.length).to_a
+
+    max_threads = arr.length if arr.length < max_threads
+
+    threads = []
+    max_threads.times {
+      threads << Thread.new {
+        while i = queue.shift
+          arr[i] = yield arr[i]
+        end
+      }
+    }
+
+    threads.each {|t| t.join }
+    arr
+  end
+end
+
+class String
+  def guess_charset
+    case self
+    when /\A[\s\x21-\x7e]*\z/
+      'us-ascii'
+    when /\A[\s\x21-\x7e]*                      (?# initial ascii )
+            (\e\(B[\s\x21-\x7e]*                (?# ascii )
+            |\e\(J[\s\x21-\x7e]*                (?# JIS X 0201 )
+            |\e\$@(?:[\x21-\x7e][\x21-\x7e])*   (?# JIS X 0201 )
+            |\e\$B(?:[\x21-\x7e][\x21-\x7e])*   (?# JIS X 0201 )
+            )*\z/nx
+      'iso-2022-jp'
+    when /\A(?:\s                               (?# white space character)
+            | [\x21-\x7e]                       (?# JIS X 0201 Latin)
+            | ([\xa1-\xdf])                     (?# JIS X 0201 Katakana)
+            | [\x81-\x9f\xe0-\xef][\x40-\x7e\x80-\xfc]      (?# JIS X 0208)
+            | ([\xf0-\xfc][\x40-\x7e\x80-\xfc]) (?# extended area)
+            )*\z/nx
+      'shift_jis'
+    when /\A(?:\s                               (?# white space character)
+            | [\x21-\x7e]                       (?# ASCII)
+            | [\xa1-\xfe][\xa1-\xfe]            (?# JIS X 0208)
+            | \x8e(?:([\xa1-\xdf])              (?# JIS X 0201 Katakana)
+                    |([\xe0-\xfe]))             (?# There is no character in E0 to FE)
+            | \x8f[\xa1-\xfe][\xa1-\xfe]        (?# JIS X 0212)
+            )*\z/nx
+      'euc-jp'
+    else
+      'iso-8859-1'
+    end
+  end
+
+  HTMLDecodeEscape = {
+    'amp' => '&',
+    'lt' => '<',
+    'gt' => '>',
+    'quot' => '"',
+  }
+  def decode_html_escape
+    self.gsub(/&(amp|lt|gt|quot);/) { HTMLDecodeEscape[$1] }
+  end
+end
+
+class Iconv
+  def Iconv.internal_charset
+    case $KCODE
+    when /\Ae/i; 'euc-jp'
+    when /\As/i; 'shift_jis'
+    when /\Au/i; 'utf-8'
+    when /\An/i; 'iso-8859-1'
+    else
+      raise "unknown $KCODE: #{$KCODE.inspect}"
+    end
+  end
+
+  def Iconv.conv(to, from, str)
+    Iconv.iconv(to, from, str).join
+  end
+end
+
+class String
+  def decode_charset(charset)
+    Iconv.conv(Iconv.internal_charset, charset, self)
+  end
+
+  def encode_charset(charset)
+    Iconv.conv(charset, Iconv.internal_charset, self)
+  end
+end
+
+class Webpecker
+  def open_lock(filename, nonblock=false)
+    dirname = File.dirname filename
+    basename = File.basename filename
+    tmpname = "#{dirname}/.,#{basename},#$$"
+
+    1.times {
+      begin
+        target = File.open(filename, File::RDWR|File::CREAT)
+        stat1 = target.stat
+        if nonblock
+          return unless target.flock(File::LOCK_EX | File::LOCK_NB)
+        else
+          target.flock(File::LOCK_EX)
+        end
+        stat2 = File.stat(filename)
+        redo if stat1.ino != stat2.ino
+
+        begin
+          File.open(tmpname, 'w') {|tmp|
+            yield target, tmp
+          }
+          stat2 = File.stat(filename) # manually unlocked?
+          File.rename(tmpname, filename) if stat1.ino == stat2.ino
+        ensure
+          File.unlink tmpname if FileTest.exist? tmpname
+        end
+      ensure
+        target.close if target
+      end
+    }
+  end
+
+  def config_flatten(arr, default={})
+    result = []
+    arr.each {|elt|
+      case elt
+      when Hash
+        if elt.include? 'URI'
+          result << default.dup.update(elt)
+        else
+          default = default.dup.update(elt)
+        end
+      when Array
+        result.concat config_flatten(elt, default)
+      when String
+        result << default.dup.update({'URI'=>elt})
+      end
+    }
+    result
+  end
+
+  def deep_copy(o)
+    Marshal.load(Marshal.dump(o))
+  end
+
+  def load_config
+    config = config_flatten(File.open(CONFIG_FILENAME) {|f| YAML.load(f) })
+    config.each {|h|
+      h.reject! {|k, v| /\A[A-Z]/ !~ k }
+    }
+    config
+  end
+
+  #def load_status(f) YAML.load(f) end
+  #def save_status(f, d) f.puts d.to_yaml end
+  def load_status(f) Marshal.load(f) end
+  def save_status(d, f) Marshal.dump(d, f) end
+
+  def open_status
+    open_lock(STATUS_FILENAME, true) {|f, out|
+      if f.stat.size == 0
+        status = []
+      else
+        status = load_status(f)
+      end
+      yield status
+      save_status(status, out)
+    }
+  end
+
+  def generate_output(data)
+    data = deep_copy(data)
+    result = XTemplate::XMLTemplate.new(File.read(TEMPLATE_LATEST_FILENAME)).expand(data)
+    result.gsub!(/&apos;/, "'")
+    if @opt_output != '-'
+      dir = File.dirname @opt_output
+      if FileTest.writable? dir
+        output_new = @opt_output + '.new'
+        open(output_new, 'w') {|f|
+          f.puts result
+        }
+        File.rename output_new, @opt_output
+      else
+        open(@opt_output, 'w') {|f|
+          f.puts result
+        }
+      end
+    else
+      puts result
+    end
+  end
+
+  def parse_options
+    @opt_output = OUTPUT_LATEST_FILENAME
+    @opt_dont_check = nil
+    @opt_force_check = nil
+    @opt_timing = nil
+    ARGV.options {|q|
+      q.banner = 'webpecker [opts]'
+      q.def_option('--help', 'show this message') {puts q; exit(0)}
+      q.def_option('--verbose', '-v', 'verbose') { $VERBOSE = true }
+      q.def_option('--no-check', '-n', 'don\'t check web') { @opt_dont_check = true }
+      q.def_option('--force', '-f', 'force check (avoid timing control mechanism)') { @opt_force_check = true }
+      q.def_option('--output=filename', '-o', 'specify output file') {|filename| @opt_output = filename }
+      q.def_option('--timing', '-t', 'show timings') { @opt_timing = true }
+      q.parse!
+    }
+  end
+
+  def create_entries(config, status)
+    logs = {}
+    status.each {|status_ent|
+      if status_ent.include?('URI') && status_ent.include?('_log')
+        logs[status_ent['URI']] = status_ent['_log']
+      end
+    }
+
+    status.clear
+
+    entries = []
+    config.each {|config_ent|
+      uri = config_ent['URI']
+      log = logs[uri] || []
+      status_ent = { 'URI' => uri, '_log' => log }
+      status << status_ent
+      entries << Entry.new(status_ent, config_ent)
+    }
+    entries
+  end
+
+  def main
+    parse_options
+    # xxx if @opt_dont_check, shouldn't lock/write-back status.rm
+    config = load_config
+    data = nil
+    open_status {|status|
+      entries = create_entries(config, status)
+      if @opt_timing
+        entries.map {|entry|
+          [entry.next_timing.localtime, entry]
+        }.sort.each {|timing, entry|
+          h = entry.presentation_data
+          puts "#{timing}: #{h['title']}"
+        }
+      else
+        unless @opt_dont_check
+          entries.concurrent_map {|entry|
+            entry.check if entry.should_check? && (@opt_force_check || entry.timing_check)
+          }
+        end
+        data = {
+          "antenna" =>
+          entries.map {|entry| entry.presentation_data }.sort_by {|e| [e['last-modified'], e['title']] }.reverse
+        }
+        generate_output(data)
+      end
+    }
+    #PP.pp(data, STDERR) if $VERBOSE
+  end
+
+end
+
+Webpecker.new.main
