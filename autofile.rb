@@ -57,6 +57,11 @@ class AutoFile
     File.read(File.join(AutoFile.directory, @filename))
   end
 
+  ExtSynonym = {
+    '.html' => ['.htm']
+  }
+  ExtSynonym.default = []
+
   def generate_filename_candidates(filename_hint, initial_content, content_type)
     base = nil
     ext = nil
@@ -92,7 +97,7 @@ class AutoFile
     else
       base = arr[0] + '-' + arr[-1]
     end
-    base = $` if /#{Regexp.quote ext}\z/ =~ base
+    base = $` if /#{Regexp.alt ext, *ExtSynonym[ext]}\z/i =~ base
 
     Thread.exclusive {
       yield "#{PREFIX}#{base}#{ext}"
