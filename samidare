@@ -931,7 +931,7 @@ class Samidare
       str << h['last-modified-found'].to_i.to_s << ','
       str << '32400,'
       str << '0,'
-      str << h['URI'].gsub(/[,\\]/) { "\\#$&" } << ','
+      str << h['linkURI'].gsub(/[,\\]/) { "\\#$&" } << ','
       str << h['title'].gsub(/[,\\]/) { "\\#$&" }.strip.gsub(/\s/, ' ') << ','
       str << (h['author'] || '0').gsub(/[,\\]/) { "\\#$&" }.strip.gsub(/\s/, ' ') << ','
       str << '0,'
