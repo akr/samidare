@@ -909,7 +909,8 @@ module Enumerable
   end
 end
 
-# Don't use &apos; because HTML4.01 has no such entity.
+# Use dobule quote to quote attributes.
+# This makes decoding &apos; safe.
 # [ruby-talk:74223]
 class REXML::Attribute
   def to_string
@@ -1046,7 +1047,7 @@ class Samidare
 
   def generate_output(data)
     result = Tempura::Template.new_with_string(File.read(@opt_template).decode_charset_guess, CharConvInternal).expand(data)
-    result.gsub!(/&apos;/, "'")
+    result.gsub!(/&apos;/, "'") # Don't use &apos; because HTML4.01 has no such entity.
     result << "\n" if /\n\z/ !~ result
     if @opt_output != '-'
       output_file(@opt_output, result)
