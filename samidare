@@ -636,9 +636,11 @@ class Webpecker
   end
 
   def load_config
+    @configuration = {}
     config = config_flatten(File.open(CONFIG_FILENAME) {|f| YAML.load(f) })
     config.each {|h|
       h.reject! {|k, v| /\A[A-Z]/ !~ k }
+      @configuration[h['URI']] = h
     }
     config
   end
@@ -728,7 +730,8 @@ class Webpecker
       }
     else
       status.each {|ent|
-        pp ent if ARGV.include?(ent['URI']) || ARGV.include?(ent['LinkURI'])
+        c = @configuration[ent['URI']]
+        pp ent if ARGV.include?(ent['URI']) || (c && ARGV.include?(c['LinkURI']))
       }
     end
   end
