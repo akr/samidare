@@ -74,6 +74,11 @@ class AutoFile
       filename_hint = $`
     end
 
+    # `php' doesn't express content at all.
+    if /\.php\z/ =~ filename_hint
+      filename_hint = $`
+    end
+
     if content_type == 'text/html'
       ext = '.html'
     elsif /\.[a-z0-9]{1,5}\z/ =~ filename_hint
