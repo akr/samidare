@@ -298,7 +298,9 @@ class Entry
     if root and root.tagname == 'rss' || root.tagname == 'rdf:RDF' #xxx: check xmlns
       if link = t.first_element('link')
         link_uri = link.text.strip
-        log['extractedLinkURI'] = link_uri unless link_uri.empty?
+        if %r{\Ahttp://} =~ link_uri
+          log['extractedLinkURI'] = link_uri
+        end
       end
     end
 
