@@ -14,9 +14,9 @@ module HTree
     Name = %r{[A-Za-z_:][-A-Za-z0-9._:]*}
     DocType = %r{<!DOCTYPE.*?>}m
     ProcIns = %r{<\?.*?\?>}m
-    StartTag = %r{<#{Name}(?:\s+#{Name}(?:=(?:'[^'>]*'|"[^">]*"|[^\s>]+))?)*\s*>}
+    StartTag = %r{<#{Name}(?:\s+#{Name}(?:\s*=\s*(?:'[^'>]*'|"[^">]*"|[^\s>]*))?)*\s*>}
     EndTag = %r{</#{Name}\s*>}
-    EmptyTag = %r{<#{Name}(?:\s+#{Name}(?:=(?:'[^'>]*'|"[^">]*"|[^\s>]+))?)*\s*/>}
+    EmptyTag = %r{<#{Name}(?:\s+#{Name}(?:\s*=\s*(?:'[^'>]*'|"[^">]*"|[^\s>]*))?)*\s*/>}
     Comment = %r{<!--.*?-->}m
   end
 
@@ -160,7 +160,16 @@ module HTree
       @str = str
     end
     def raw_string; @str; end
-    def inspect; "{#{self.class.name.sub(/.*::/,'').downcase} #{@str.inspect}}" end
+    def pretty_print(pp)
+      pp.group(1, '{', '}') {
+        pp.text self.class.name.sub(/.*::/,'').downcase
+        @str.each_line {|line|
+          pp.breakable
+          pp.pp line
+        }
+      }
+    end
+    alias inspect pretty_print_inspect
   end
 
   class DocType
