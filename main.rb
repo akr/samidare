@@ -929,10 +929,10 @@ end
 module Enumerable
   $opt_max_threads = 8
   def concurrent_map(max_threads=$opt_max_threads, &block)
-    if max_threads == 1
+    arr = self.to_a.dup
+    if max_threads == 1 || arr.length == 1
       self.map(&block)
     else
-      arr = self.to_a.dup
       queue = (0...arr.length).to_a
 
       max_threads = arr.length if arr.length < max_threads
