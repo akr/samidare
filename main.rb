@@ -326,7 +326,7 @@ class Entry
 
     t, checksum_filter = ignore_tree(t)
     log['checksum_filter'] = checksum_filter unless checksum_filter.empty?
-    log['checksum_filtered'] = t.extract_text.rcdata.sum
+    log['checksum_filtered'] = t.extract_text.rcdata.gsub(/\s+/, '').sum
   end
 
   def ignore_tree(tree, config=@config)
