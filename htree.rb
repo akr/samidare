@@ -20,39 +20,29 @@ module HTree
     Comment = %r{<!--.*?-->}m
   end
 
-  class Fragment
-    def initialize(str, mark)
-      @str = str.dup
-      @str.freeze
-      @mark = mark
+  class Tag
+    def initialize(str)
+      @str = str
+      @prefix = []
+      @suffix = []
     end
-    attr_accessor :mark
+    attr_accessor :prefix, :suffix
 
     def tagname
+      return @tagname if defined? @tagname
       Pat::Name =~ @str
-      $&.downcase
+      @tagname = $&.downcase
     end
 
     def to_s
       @str
     end
-
-    def inspect
-      "<Fragment:#{@mark} #{@str.inspect}>"
-    end
-
-    def to_tree
-      case @mark
-      when :doctype; DocType.new(@str)
-      when :procins; ProcIns.new(@str)
-      when :comment; Comment.new(@str)
-      when :empty; EmptyElem.new(@str)
-      when :text; Text.new(@str)
-      when :ignored_etag; IgnoredETag.new(@str)
-      else
-        raise "cannot convert to tree from fragment marked as #{@mark}"
-      end
-    end
+  end
+  class STag < Tag
+    def inspect; "<stag: #{@str.inspect}>" end
+  end
+  class ETag < Tag
+    def inspect; "<etag: #{@str.inspect}>" end
   end
 
   module Node
@@ -74,7 +64,7 @@ module HTree
 
   class Doc
     include Node
-    def initialize(*elts)
+    def initialize(elts)
       @elts = elts
     end
     def pretty_print(pp)
@@ -118,17 +108,21 @@ module HTree
       @elts.each {|elt| text << elt.html_text }
       text
     end
-
   end
 
   class Elem
     include Node
-    def initialize(stag, *elts)
-      @stag = stag.to_s
+    def initialize(stag, elts=[], etag=nil)
+      @stag = stag
       @elts = elts
-      @etag = nil
-      @etag = elts.pop.to_s if !elts.empty? && Fragment === elts.last && elts.last.mark == :etag
+      @etag = etag
     end
+    attr_reader :stag, :elts, :etag
+
+    def tagname
+      @stag.tagname
+    end
+
     def pretty_print(pp)
       pp.group(1, "{elem", "}") {
         pp.breakable; pp.pp @stag
@@ -137,23 +131,6 @@ module HTree
       }
     end
     alias inspect pretty_print_inspect
-
-    def extract_taginfo
-      return if defined? @tagname
-      if @stag
-        Pat::Name =~ @stag
-        @tagname = $&.downcase
-      elsif @etag
-        Pat::Name =~ @stag
-        @tagname = $&.downcase
-      else
-        @tagname = nil
-      end
-    end
-    def tagname
-      extract_taginfo
-      @tagname
-    end
 
     def each_element(name=nil)
       yield self if name == nil || self.tagname == name
@@ -164,9 +141,9 @@ module HTree
 
     def raw_string
       str = ''
-      str << @stag if @stag
+      str << @stag.to_s if @stag
       @elts.each {|elt| str << elt.raw_string }
-      str << @etag if @etag
+      str << @etag.to_s if @etag
       str
     end
 
@@ -330,35 +307,6 @@ module HTree
     }
   end
 
-  def HTree.scan(str)
-    text = nil
-    str.scan(%r{(#{Pat::DocType})|(#{Pat::ProcIns})|(#{Pat::StartTag})|(#{Pat::EndTag})|(#{Pat::EmptyTag})|(#{Pat::Comment})|[^<>]+|[<>]}o) {
-      if $+
-        if text
-          yield Fragment.new(text, :text)
-          text = nil
-        end
-        if $1
-          yield Fragment.new($&, :doctype)
-        elsif $2
-          yield Fragment.new($&, :procins)
-        elsif $3
-          yield Fragment.new($&, :stag)
-        elsif $4
-          yield Fragment.new($&, :etag)
-        elsif $5
-          yield Fragment.new($&, :empty)
-        else
-          yield Fragment.new($&, :comment)
-        end
-      else
-        text ||= ''
-        text << $&
-      end
-    }
-    yield Fragment.new(text, :text) if text
-  end
-
   EmptyTags = %w[
     basefont br area link img param hr input col frame isindex base meta
   ]
@@ -489,71 +437,151 @@ module HTree
     TagInfo[tag][0] = children
   }
 
-  def HTree.parse_pairs(frags)
-    stack = [[TagInfo['/'].first, [], [], nil]]
-    frags.each {|f|
-      case f.mark
-      when :empty, :stag
-        parent_elts = nil
-        stack.reverse_each {|elts|
-          possible_tags, forbidden_tags, additional_tags = elts
-          possible_tags = (possible_tags | additional_tags) - forbidden_tags
-          if possible_tags.include? f.tagname
-            parent_elts = elts
-            break
-          end
-        }
-        if parent_elts
-          until stack.last.equal? parent_elts
-            elts = stack.pop
-            stack.last.push Elem.new(*elts[3..-1])
-          end
-        end
-        if f.mark == :empty
-          stack.last << f.to_tree
-        else
-          possible_sibling_tags, forbidden_tags, additional_tags = stack.last
-          possible_tags, forbidden_tags2, additional_tags2 = TagInfo[f.tagname]
-          possible_tags = possible_sibling_tags unless possible_tags
-          forbidden_tags |= forbidden_tags2 if forbidden_tags2
-          additional_tags |= additional_tags2 if additional_tags2
-          stack << [possible_tags, forbidden_tags, additional_tags, f]
-        end
-      when :etag
-        target_elts = nil
-        stack.reverse_each {|elts|
-          _, _, _, first_elt, = elts
-          if Fragment === first_elt && first_elt.mark == :stag && first_elt.tagname == f.tagname
-            target_elts = elts
-            break
-          end
-        }
-        if target_elts
-          until stack.last.equal? target_elts
-            elts = stack.pop
-            stack.last.push Elem.new(*elts[3..-1])
-          end
-          stack.last << f
-          elts = stack.pop
-          stack.last.push Elem.new(*elts[3..-1])
-        else
-          f.mark = :ignored_etag
-          stack.last << f.to_tree
-        end
-      else
-        stack.last << f.to_tree
+  def HTree.parse(str)
+    elts = []
+    scan(str) {|elt|
+      elts << elt
+    }
+    elts = parse_pairs(elts)
+    elts.each_with_index {|elt, i|
+      if Elem === elt && !elt.etag
+        elts[i] = Elem.new(elt.stag, elt.elts, true)
       end
     }
-    until stack.length == 1
-      elts = stack.pop
-      stack.last.push Elem.new(*elts[3..-1])
-    end
-    Doc.new(*stack.first[4..-1])
+    elts = fix_elts(elts)
+    elts.each_with_index {|elt, i|
+      if Elem === elt && elt.etag == true
+        elts[i] = Elem.new(elt.stag, elt.elts, nil)
+      end
+    }
+    Doc.new(elts)
   end
 
-  def HTree.parse(str)
-    parse_pairs(parse_empties(str))
+  def HTree.scan(str)
+    text = nil
+    str.scan(%r{(#{Pat::DocType})|(#{Pat::ProcIns})|(#{Pat::StartTag})|(#{Pat::EndTag})|(#{Pat::EmptyTag})|(#{Pat::Comment})|[^<>]+|[<>]}o) {
+      if $+
+        if text
+          yield Text.new(text)
+          text = nil
+        end
+        if $1
+          yield DocType.new($&)
+        elsif $2
+          yield ProcIns.new($&)
+        elsif $3
+          yield STag.new($&)
+        elsif $4
+          yield ETag.new($&)
+        elsif $5
+          yield EmptyElem.new($&)
+        else
+          yield Comment.new($&)
+        end
+      else
+        text ||= ''
+        text << $&
+      end
+    }
+    yield Text.new(text) if text
   end
+
+  def HTree.parse_pairs(elts)
+    result = []
+    stack = [[nil]]
+    elts.each {|elt|
+      case elt
+      when STag
+        stack << [elt]
+      when ETag
+        match = nil
+        etagname = elt.tagname
+        stack.reverse_each {|es|
+          if es.first && es.first.tagname == etagname
+            match = es
+            break
+          end
+        }
+        if match
+          elem = nil
+          until match.equal? stack.last
+            stack.last << elem if elem
+            es_elts = stack.pop
+            es_stag = es_elts.shift
+            elem = Elem.new(es_stag, es_elts)
+          end
+          es_elts = stack.pop
+          es_stag = es_elts.shift
+          es_elts << elem if elem
+          stack.last << Elem.new(es_stag, es_elts, elt)
+        else
+          stack.last << IgnoredETag.new(elt.to_s)
+        end
+      else
+        stack.last << elt
+      end
+    }
+    elem = nil
+    while stack.last.first
+      es_elts = stack.pop
+      es_stag = es_elts.shift
+      elem = Elem.new(es_stag, es_elts)
+      stack.last << elem
+    end
+    elts.replace stack.first[1..-1]
+  end
+
+  def HTree.fix_elts(elts)
+    result = []
+    rest = elts.dup
+    until rest.empty?
+      elt = rest.shift
+      if Elem === elt
+        elem, rest2 = fix_elem(elt, TagInfo['/'].first, [], [])
+        result << elem
+        rest = rest2 + rest
+      else
+        result << elt
+      end
+    end
+    result
+  end
+
+  def HTree.fix_elem(elem, possible_sibling_tags, forbidden_tags, additional_tags)
+    if elem.etag
+      return Elem.new(elem.stag, fix_elts(elem.elts), elem.etag), []
+    else
+      tagname = elem.tagname
+      if EmptyTagHash[tagname]
+        return EmptyElem.new(elem.stag.to_s), elem.elts
+      else
+        possible_tags, forbidden_tags2, additional_tags2 = TagInfo[tagname]
+        possible_tags = possible_sibling_tags unless possible_tags
+        forbidden_tags |= forbidden_tags2 if forbidden_tags2
+        additional_tags |= additional_tags2 if additional_tags2
+        containable_tags = (possible_tags | additional_tags) - forbidden_tags
+        fixed_elts = []
+        rest = elem.elts.dup
+        until rest.empty?
+          elt = rest.shift
+          if Elem === elt
+            if containable_tags.include? elt.tagname
+              elt, rest2 = fix_elem(elt, possible_tags, forbidden_tags, additional_tags)
+              fixed_elts << elt
+              rest = rest2 + rest
+            else
+              rest.unshift elt
+              break
+            end
+          else
+            fixed_elts << elt
+          end
+        end
+        return Elem.new(elem.stag, fixed_elts), rest
+      end
+    end
+  end
+
 end
 
 if $0 == __FILE__
@@ -581,8 +609,12 @@ if $0 == __FILE__
     <hr/>
     <hr> </hr>
     <hr><!-- aaa --> </hr>
+    a<div>b<hr>c</div>d
+    <li>
+    <li>
   </body>
-</html>
+  <li>
+  <li>
 End
   else
     str = ARGF.read
