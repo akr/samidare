@@ -98,7 +98,14 @@ def main
     expand_require(out, script, libdirs, true, included)
     if $dep_output_filename
       open($dep_output_filename, 'w') {|f|
-        f.puts "#{$output_filename} : #{script} #{included.values.sort.join(' ')}"
+        incs = included.values.sort.join(' ')
+        if incs.empty?
+          f.puts "#{$output_filename} : #{script}"
+        else
+          # wildcard is used to eliminate non-existing file from prerequisite.
+          # It avoids dependency problem when a file is removed.
+          f.puts "#{$output_filename} : #{script} $(wildcard #{incs})"
+        end
       }
     end
   }
