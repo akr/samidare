@@ -125,7 +125,7 @@ class Entry
     h = @config.dup
     h['status'] = status
     h['statusMessage'] = status_message if status_message
-    h['serverDateString'] = meta['date'] if meta['date']
+    h['serverDateString'] = meta['date'] if meta && meta['date']
 
     if @config['LogMeta']
       h['logSendHeader'] = opts
