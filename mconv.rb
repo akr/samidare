@@ -12,13 +12,7 @@ module Mconv
     end
   end
 
-  def Mconv.mime_to_iconv(charset)
-    charset
-  end
-
   def Mconv.conv(str, to, from)
-    to = mime_to_iconv(to)
-    from = mime_to_iconv(from)
     ic = Iconv.new(to, from)
 
     result = ''
