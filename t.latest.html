@@ -23,21 +23,20 @@
             <span _text="
               entry['last-modified'] ?
               entry['last-modified'].strftime('%m-%d %H:%M') :
-              '- no log -'">title</span>
+              '- no log -'">date</span>
             <span _iter="
               [entry['_log'].map {|log| log['content'] }.compact.reverse.find {|content| content.exist? }].each//content
-              "><a _if="content" _else=x _attr_href="content.pathname">C</a><span _template=x>X</span></span>
-            <a _attr_href="entry['linkURI']"
-            ><span _text="entry['title']"
-            /><span _if="author = entry['author']"> (<span _text="author">author</span>)</span></a
-            > <span _text="entry['info']">[info]</span
-            >[<span _iter="
+              ">&#32;<a _if="content" _else=x _attr_href="content.pathname">C</a><span _template=x>X</span>&#32;</span>
+            <a _attr_href="entry['linkURI']">
+              <span _text="entry['title']">title</span>
+              <span _if="author = entry['author']"> (<span _text="author">author</span>)</span>
+            </a>&#32;<span _text="entry['info']">[info]</span>[<span _iter="
               entry['_log'].map {|log|
                 log['content']
               }.compact.find_all {|content|
                 content.exist?
               }.reverse.each_with_index//content,i
-              "><span _if="i != 0"> </span><a _attr_href="content.pathname" _text="i">i</a></span>]
+              "><span _if="i != 0">&#32;</span><a _attr_href="content.pathname" _text="i">i</a></span>]
           </li>
         </ol>
       </div>
