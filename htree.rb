@@ -67,7 +67,7 @@ class HTree
         elsif $3
           u = NamedCharacters[$3]
         end
-        u ? [u].pack("U").decode_charset('UTF-8') : '?'
+        u && 0 <= u && u <= 0x7fffffff ? [u].pack("U").decode_charset('UTF-8') : '?'
       }
     end
   end
