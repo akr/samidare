@@ -908,8 +908,8 @@ class Samidare
       str << '32400,'
       str << '0,'
       str << h['URI'].gsub(/,/, '\,') << ','
-      str << h['title'] << ','
-      str << (h['author'] || '0') << ','
+      str << h['title'].gsub(/,/, '\,') << ','
+      str << (h['author'] || '0').gsub(/,/, '\,') << ','
       str << ','
       str << "\n"
     }
