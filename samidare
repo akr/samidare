@@ -425,6 +425,7 @@ class Entry
         end
       end
     end
+    h['title'] ||= h['LinkURI'] if h['LinkURI']
     h['title'] ||= h['URI']
 
     h
@@ -460,21 +461,29 @@ class String
   def guess_charset
     case self
     when /\A[\s\x21-\x7e]*\z/
-      'us-ascii'
+      "us-ascii"
     when /\A[\s\x21-\x7e]*                      (?# initial ascii )
             (\e\(B[\s\x21-\x7e]*                (?# ascii )
             |\e\(J[\s\x21-\x7e]*                (?# JIS X 0201 )
             |\e\$@(?:[\x21-\x7e][\x21-\x7e])*   (?# JIS X 0201 )
             |\e\$B(?:[\x21-\x7e][\x21-\x7e])*   (?# JIS X 0201 )
             )*\z/nx
-      'iso-2022-jp'
+      "iso-2022-jp"
+    when /\A[\s\x21-\x7e]*                      (?# initial ascii )
+            (\e\(B[\s\x21-\x7e]*                (?# ascii )
+            |\e\(J[\s\x21-\x7e]*                (?# JIS X 0201 latin )
+            |\e\(I[\s\x21-\x7e]*                (?# JIS X 0201 katakana )
+            |\e\$@(?:[\x21-\x7e][\x21-\x7e])*   (?# JIS X 0201 )
+            |\e\$B(?:[\x21-\x7e][\x21-\x7e])*   (?# JIS X 0201 )
+            )*\z/nx
+      "iso-2022-jp" # with katakana
     when /\A(?:\s                               (?# white space character)
             | [\x21-\x7e]                       (?# JIS X 0201 Latin)
             | ([\xa1-\xdf])                     (?# JIS X 0201 Katakana)
             | [\x81-\x9f\xe0-\xef][\x40-\x7e\x80-\xfc]      (?# JIS X 0208)
             | ([\xf0-\xfc][\x40-\x7e\x80-\xfc]) (?# extended area)
             )*\z/nx
-      'shift_jis'
+      "shift_jis"
     when /\A(?:\s                               (?# white space character)
             | [\x21-\x7e]                       (?# ASCII)
             | [\xa1-\xfe][\xa1-\xfe]            (?# JIS X 0208)
@@ -482,9 +491,18 @@ class String
                     |([\xe0-\xfe]))             (?# There is no character in E0 to FE)
             | \x8f[\xa1-\xfe][\xa1-\xfe]        (?# JIS X 0212)
             )*\z/nx
-      'euc-jp'
+      "euc-jp"
+    when /\A(?:\s
+            | [\x21-\x7e]
+            | [\xc0-\xdf][\x80-\xbf]
+            | [\xe0-\xef][\x80-\xbf][\x80-\xbf]
+            | [\xf0-\xf7][\x80-\xbf][\x80-\xbf][\x80-\xbf]
+            | [\xf8-\xfb][\x80-\xbf][\x80-\xbf][\x80-\xbf][\x80-\xbf]
+            | [\xfc-\xfd][\x80-\xbf][\x80-\xbf][\x80-\xbf][\x80-\xbf][\x80-\xbf]
+            )*\z/nx
+      "utf-8" # may be redundunt.
     else
-      'iso-8859-1'
+      "iso-8859-1"
     end
   end
 
@@ -520,7 +538,12 @@ class Iconv
   end
 
   def Iconv.conv(to, from, str)
-    Iconv.iconv(to, from, str).join
+    begin
+      Iconv.iconv(to, from, str).join
+    rescue Iconv::IllegalSequence
+      p [:IllegalSequence, str]
+      ""
+    end
   end
 end
 
@@ -761,4 +784,6 @@ class Webpecker
 
 end
 
-Webpecker.new.main
+if $0 == __FILE__
+  Webpecker.new.main
+end
