@@ -532,6 +532,7 @@ class Entry
     content = log['content'].content
     content = content.decode_charset(log['contentCharset'])
     tree = HTree.parse(content)
+    tree = ignore_tree(tree, log)
     base_uri = URI.parse(log['baseURI'] || log['URI'])
     extract_html_update_info_rec(tree, info={}, [base_uri])
     info
