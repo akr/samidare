@@ -315,9 +315,9 @@ class Entry
   end
 
   def check_lirs(new_lirs)
-    log = @hash['_log']
+    logseq = @hash['_log']
     old_lirs = nil
-    log.reverse_each {|h|
+    logseq.reverse_each {|h|
       if h['content']
         old_lirs = h['content'].content
         break
@@ -424,10 +424,10 @@ class Entry
   def add_periodical_info(h)
     return if h['status'] != '200'
 
-    log = @hash['_log']
+    logseq = @hash['_log']
 
     periodical = nil
-    log.reverse_each {|l|
+    logseq.reverse_each {|l|
       if l['periodical']
         periodical = l['periodical'].dup
         break
@@ -573,12 +573,12 @@ class Entry
 
   def presentation_data
     h = @config.dup
-    log = @hash['_log']
+    logseq = @hash['_log']
     h.update @hash # xxx
     h['title'] = h['Title']
     h['author'] = h['Author']
     h['last-modified'] = '- no log -'
-    unless log.empty?
+    unless logseq.empty?
       if l = find_first_200_with_current_content
         h['last-modified-found'] = l['clientDateBeg'] # xxx: clientDateEnd is better?
         if l.include? 'lastModifiedString'
@@ -597,7 +597,7 @@ class Entry
         h['title'] ||= l['extractedTitle'] if l['extractedTitle']
         h['author'] ||= l['extractedAuthor'] if l['extractedAuthor']
       else
-        l = log.last
+        l = logseq.last
         if l['status']
           if l['statusMessage']
             h['last-modified'] = "- #{l['status']} #{l['statusMessage']} -"
