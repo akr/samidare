@@ -1017,6 +1017,9 @@ class Samidare
           s << " (#{h['Author']})" if h['Author']
           puts s
         }
+	if now
+	  puts "#{now}  --- now ---"
+	end
       elsif @opt_remove_entry
         removing_uris = {}
         entries.each {|e|
