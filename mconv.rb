@@ -70,6 +70,7 @@ module Mconv
          )*\z/nx,
     'utf-8' =>
       /\A(?:\s
+         | [\x21-\x7e]
          | [\xc0-\xdf][\x80-\xbf]
          | [\xe0-\xef][\x80-\xbf][\x80-\xbf]
          | [\xf0-\xf7][\x80-\xbf][\x80-\xbf][\x80-\xbf]
@@ -83,12 +84,18 @@ module Mconv
     CharsetTable.each {|name, regexp|
       count[name] = 0
     }
-    str.each_line {|line|
+    str.scan(/\S+/n) {|fragment|
       CharsetTable.each {|name, regexp|
-        count[name] += 1 if regexp =~ line
+        count[name] += 1 if regexp =~ fragment
       }
     }
-    count.keys.sort_by {|name| count[name]}.last
+    max = count.values.max
+    count.reject! {|k, v| v != max }
+    return count.keys[0] if count.size == 1
+    return 'us-ascii' if count['us-ascii']
+    
+    # xxx: needs more accurate guess
+    count.keys.sort.first
   end
 end
 
