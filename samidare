@@ -31,8 +31,8 @@ class Entry
   attr_reader :hash
   attr_reader :config
 
-  def antenna?
-    @config.include? 'Antenna'
+  def update_info?
+    @config.include? 'UpdateInfo'
   end
 
   def should_check?
@@ -179,7 +179,7 @@ class Entry
       end
       h['checksum'] = content.sum unless h['checksum']
 
-      if @config['Antenna'] == 'lirs' && !content_encoding
+      if @config['UpdateInfo'] == 'lirs' && !content_encoding
         h['content'] = String.new(content)
       end
     end
@@ -565,14 +565,15 @@ class Webpecker
       else
         unless @opt_dont_check
           entries.concurrent_map {|entry|
-            next unless entry.antenna?
+            next unless entry.update_info?
             entry.check if entry.should_check? && (@opt_force_check || entry.timing_check)
           }
           entries.concurrent_map {|entry|
-            next if entry.antenna?
+            next if entry.update_info?
             entry.check if entry.should_check? && (@opt_force_check || entry.timing_check)
           }
         end
+        entries.reject! {|entry| entry.update_info? }
         data = {
           "antenna" =>
           entries.map {|entry| entry.presentation_data }.sort_by {|e| [e['last-modified'], e['title']] }.reverse
