@@ -12,3 +12,7 @@
   ChecksumXPath: html/body/p
 - URI: http://www.jate.or.jp/jp/tanmatsu/
   Title: JATE tanmatsu list
+
+- DefaultCharset: Shift_JIS
+- http://pc2.2ch.net/test/read.cgi/tech/1042004759/l50
+- http://pc.2ch.net/test/read.cgi/unix/1045705000/l50
