@@ -24,6 +24,10 @@ STATUS_FILENAME = 'status.rm'
 TEMPLATE_LATEST_FILENAME = 't.latest.html'
 OUTPUT_LATEST_FILENAME = 'latest.html'
 
+def Time.httpdate_robust(str)
+  Time.httpdate(str) rescue Time.parse(str)
+end
+
 class Entry
   ENTRIES = {}
 
@@ -70,7 +74,7 @@ class Entry
     }
     t = last_modified + intervals.min
     begin # adjust server/client time difference
-      t += (h['clientDateEnd'] || h['clientDateBeg']) - Time.httpdate(h['serverDateString'])
+      t += (h['clientDateEnd'] || h['clientDateBeg']) - Time.httpdate_robust(h['serverDateString'])
     rescue
     end
     t
@@ -103,8 +107,8 @@ class Entry
       end
       if !s1t
         begin
-          s1t = Time.httpdate(s1['lastModifiedString']) +
-            ((s1['clientDateEnd'] || s1['clientDateBeg']) - Time.httpdate(s1['serverDateString']))
+          s1t = Time.httpdate_robust(s1['lastModifiedString']) +
+            ((s1['clientDateEnd'] || s1['clientDateBeg']) - Time.httpdate_robust(s1['serverDateString']))
         rescue
           s1t = s1['clientDateEnd'] || s1['clientDateBeg']
         end
@@ -298,7 +302,7 @@ class Entry
     }
     (new_check_key.keys & old_check_key.keys).each {|uri|
       if old_check_key[uri] != new_check_key[uri]
-        pp [:HTML_UPDATE, uri, @config['URI'],
+        p [:HTML_UPDATE, uri, @config['URI'],
             "#{Mconv.conv(old_check_key[uri], Mconv.internal_mime_charset, 'UTF-8')}",
             "#{Mconv.conv(new_check_key[uri], Mconv.internal_mime_charset, 'UTF-8')}"]
         STDOUT.flush
@@ -370,8 +374,8 @@ class Entry
     periodical ||= []
 
     begin
-      t = Time.httpdate(h['lastModifiedString'])
-    rescue ArgumentError
+      t = Time.httpdate_robust(h['lastModifiedString'])
+    rescue
     end
 
     if t && (periodical.empty? || periodical.last != t)
@@ -481,7 +485,7 @@ class Entry
       if l = find_first_200_with_current_content
         h['last-modified-found'] = l['clientDateBeg'] # xxx: clientDateEnd is better?
         if l.include? 'lastModifiedString'
-          h['last-modified'] = Time.httpdate(l['lastModifiedString']).localtime.iso8601
+          h['last-modified'] = Time.httpdate_robust(l['lastModifiedString']).localtime.iso8601
           l2 = find_last_200
           unless l.equal? l2
             if l['lastModifiedString'] != l2['lastModifiedString']
@@ -521,23 +525,27 @@ class Entry
 end
 
 module Enumerable
-  def concurrent_map(max_threads=8)
-    arr = self.to_a.dup
-    queue = (0...arr.length).to_a
+  def concurrent_map(max_threads=1, &block)
+    if max_threads == 1
+      self.map(&block)
+    else
+      arr = self.to_a.dup
+      queue = (0...arr.length).to_a
 
-    max_threads = arr.length if arr.length < max_threads
+      max_threads = arr.length if arr.length < max_threads
 
-    threads = []
-    max_threads.times {
-      threads << Thread.new {
-        while i = queue.shift
-          arr[i] = yield arr[i]
-        end
+      threads = []
+      max_threads.times {
+        threads << Thread.new {
+          while i = queue.shift
+            arr[i] = yield arr[i]
+          end
+        }
       }
-    }
 
-    threads.each {|t| t.join }
-    arr
+      threads.each {|t| t.join }
+      arr
+    end
   end
 end
 
@@ -573,7 +581,7 @@ class Webpecker
         stat1 = target.stat
         if nonblock
           unless target.flock(File::LOCK_EX | File::LOCK_NB)
-            STDERR.puts "already locked: #{filename}" if $VERBOSE
+            STDERR.puts "fail to lock: #{filename}" if $VERBOSE
             return
           end
         else
