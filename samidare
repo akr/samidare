@@ -8,13 +8,11 @@ require 'uri'
 require 'time'
 require 'resolv-replace'
 require 'yaml'
-require 'tidy'
 require 'mconv'
 require 'timeout'
 require 'net/http'
 require 'pp'
 require 'optparse'
-require 'rexml/document'
 require 'zlib'
 require 'lirs'
 require 'autofile'
@@ -368,70 +366,90 @@ class Entry
     end
   end
 
-  #xxx: rescue
-  def check_html(new_log)
-    new_check_key = extract_html_check_key(new_log)
-    old_log = find_last_200
-    old_check_key = old_log ? extract_html_check_key(old_log) : {}
-    updated_uris = {}
-    (new_check_key.keys - old_check_key.keys).each {|uri|
-      p [:HTML_UPDATE, uri, @config['URI']]; STDOUT.flush
-      updated_uris[uri] = true
-    }
-    (new_check_key.keys & old_check_key.keys).each {|uri|
-      if old_check_key[uri] != new_check_key[uri]
-        p [:HTML_UPDATE, uri, @config['URI'],
-            "#{Mconv.conv(old_check_key[uri], Mconv.internal_mime_charset, 'UTF-8')}",
-            "#{Mconv.conv(new_check_key[uri], Mconv.internal_mime_charset, 'UTF-8')}"]
-        STDOUT.flush
-        updated_uris[uri] = true
+  def extract_html_update_info_rec(elt, result, base_uri_cell)
+    hrefs = []
+
+    if HTree::Elem === elt && elt.tagname == 'base'
+      if href = elt.stag.fetch_attribute_text('href', nil)
+        base_uri_cell[0] = URI.parse(href)
       end
-    }
-    updated_uris.each_key {|uri|
-      if es = ENTRIES[uri]
-        es.each {|e|
-          e.status['_update_info'] = true
-        }
+    elsif HTree::Elem === elt && elt.tagname == 'a'
+      if href = elt.stag.fetch_attribute_text('href', nil)
+        href = (base_uri_cell[0] + URI.parse(href)).to_s
+        hrefs << href if ENTRIES[href]
       end
-    }
-    STDERR.puts "HTML total: #{updated_uris.size} / #{new_check_key.size} - #{@config['URI']}" if $VERBOSE
+    else
+      elt.each {|e|
+        next unless HTree::Elem === e
+        hrefs.concat extract_html_update_info_rec(e, result, base_uri_cell)
+      }
+    end
+
+    hrefs.uniq!
+
+    if HTree::Elem === elt && elt.tagname == @config.fetch('UpdateElement', 'a')
+      hrefs.each {|uri|
+        result[uri] ||= []
+        result[uri] << elt
+      }
+      return []
+    else
+      return hrefs
+    end
   end
 
-  def extract_html_check_key(log)
-    return {} unless log.include?('content')
-    content = log['content'].content
+  def extract_html_update_info(old_log, new_log)
+    return unless old_log && old_log['content'] && old_log['contentCharset'] &&
+                  new_log && new_log['content'] && new_log['contentCharset']
 
-    entry_xpath = @config.fetch("UpdateEntry", "//a")
-    check_xpath = @config.fetch("UpdateCheck", ".")
+    count_update = 0
+    count_interest = 0
 
-    uri_set = {}
-    t = Mconv.conv(content, 'UTF-8', log['contentCharset'])
-    t = Tidy.parse_string(t, "output-xml"=>true, :encoding=>"UTF-8", :wrap=>nil).dump
-    t.gsub!(%r{<\n\/}, '</')
-    doc = REXML::Document.new(t)
-    base_uri = URI.parse(log['baseURI'] || log['URI'])
-    if base_element = doc.get_elements("//base").first
-      base_uri = base_uri + URI.parse(base_element.attribute("href").to_s)
-    end
-    doc.each_element(entry_xpath) {|entry|
-      uris = []
-      if entry.name == 'a'
-        e = entry
-        uri = (base_uri + URI.parse(e.attribute("href").to_s)).to_s
-        uris << uri if uri && ENTRIES.include?(uri)
-      else
-        entry.each_element(".//a") {|e|
-          uri = (base_uri + URI.parse(e.attribute("href").to_s)).to_s
-          uris << uri if uri && ENTRIES.include?(uri)
+    old_content = old_log['content'].content
+    new_content = new_log['content'].content
+
+    old_content = old_content.decode_charset(old_log['contentCharset'])
+    new_content = new_content.decode_charset(new_log['contentCharset'])
+
+    old_tree = HTree.parse(old_content)
+    new_tree = HTree.parse(new_content)
+
+    old_base_uri = URI.parse(old_log['baseURI'] || old_log['URI'])
+    new_base_uri = URI.parse(new_log['baseURI'] || new_log['URI'])
+
+    extract_html_update_info_rec(old_tree, old_info={}, [old_base_uri])
+    extract_html_update_info_rec(new_tree, new_info={}, [new_base_uri])
+
+    (old_info.keys & new_info.keys).each {|uri|
+      count_interest += 1
+      if old_info[uri].map {|elt| elt.raw_string }.join !=
+         new_info[uri].map {|elt| elt.raw_string }.join
+        #pp [uri, old_info[uri]]
+        #pp [uri, new_info[uri]]
+        count_update += 1
+        ENTRIES[uri].each {|e|
+          yield e.uri
         }
       end
-      unless uris.empty?
-        check = ''
-        REXML::XPath.each(entry, check_xpath) {|n| n.write check }
-        uris.each {|uri| uri_set[uri] = check }
-      end
     }
-    uri_set
+
+    STDERR.puts "HTML total: #{count_update} / #{count_interest} - #{@config['URI']}" if $VERBOSE
+  end
+
+  # xxx: rescue
+  def check_html(new_log=nil)
+    if new_log
+      old_log = find_last_200
+    else
+      new_log = find_last_200
+      old_log = find_last_200_with_previous_content
+    end
+    extract_html_update_info(old_log, new_log) {|uri|
+      ENTRIES[uri].each {|e|
+        p [:HTML_UPDATE, e.uri, @config['URI']]
+        e.status['_update_info'] = true
+      }
+    }
   end
 
   StatusMap = {
@@ -545,6 +563,19 @@ class Entry
     unless logseq.last.equal? log
       raise "current log is not added [bug]"
     end
+  end
+
+  def find_last_200_with_previous_content
+    current = nil
+    @status['_log'].reverse_each {|log|
+      next unless log['status'] == '200'
+      if !current
+        current = log
+      elsif !content_unchanged(current, log)
+        return log
+      end
+    }
+    nil
   end
 
   def find_first_200_with_current_content
