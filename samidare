@@ -288,6 +288,14 @@ class Entry
       end
     }
 
+    root = t.first_element
+    if root and root.tagname == 'rss' || root.tagname == 'rdf:RDF' #xxx: check xmlns
+      if link = t.first_element('link')
+        link_uri = link.text.strip
+        log['extractedLinkURI'] = link_uri unless link_uri.empty?
+      end
+    end
+
     if ignore_path = @config['IgnorePath']
       ignore_path = ignore_path.split(/\s+/)
     else
