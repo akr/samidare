@@ -25,7 +25,7 @@
           <a _attr_href="entry['linkURI']"
             ><span _self_="entry['title']"
             /><span _if_="entry['author']"> (<span _self_="entry['author']">author</span>)</span></a>
-          [<span _block_="entry['_log'].map {|log| log['content'] }.compact.reverse//each_with_index//content,i"><span _if_="i != 0"> </span><a _attr_href="content.pathname" _child_="i">i</a></span>]
+          [<span _block_="entry['_log'].map {|log| log['content'] }.compact.find_all {|content| content.exist? }.reverse//each_with_index//content,i"><span _if_="i != 0"> </span><a _attr_href="content.pathname" _child_="i">i</a></span>]
           </li>
         </ol>
       </div>
