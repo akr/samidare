@@ -10,7 +10,7 @@ module HTree
     CDATA = /<!\[CDATA\[.*?\]\]>/m
 
     ValidAttr = /#{Name}(?:\s*=\s*(?:"[^"]*"|'[^']*'|[-A-Za-z._:]*))?/
-    InvalidAttr = /#{Name}(?:\s*=\s*(?:'[^'<>]*'|"[^"<>]*"|[^\s<>]*))?/
+    InvalidAttr = /#{Name}(?:\s*=\s*(?:'[^'<>]*'|"[^"<>]*"|[^\s<>"']*))?/
 
     ValidStartTag = /<#{Name}(?:\s+#{ValidAttr})*\s*>/
     InvalidStartTag = /<#{Name}(?:\s+#{InvalidAttr})*\s*>/
