@@ -53,7 +53,7 @@ module HTree
       @elts.each {|e| yield e }
     end
 
-    def each_with_path
+    def each_with_path(prefix=nil)
       count = {}
       @elts.each {|elt|
         node_test = elt.node_test
@@ -67,7 +67,11 @@ module HTree
         n = pos[node_test] += 1
         child_path = node_test
         child_path += "[#{n}]" unless n == 1 && count[node_test] == 1
-        yield elt, child_path
+        if prefix
+          yield elt, "#{prefix}/#{child_path}"
+        else
+          yield elt, child_path
+        end
       }
     end
 
@@ -79,10 +83,9 @@ module HTree
     end
 
     def traverse_with_path
-      path = '/'
-      yield self, path
-      self.each_with_path {|elt, relpath|
-        elt.traverse_with_path(path + relpath) {|e, p|
+      yield self, '/'
+      self.each_with_path('') {|elt, path|
+        elt.traverse_with_path(path) {|e, p|
           yield e, p
         }
       }
@@ -94,6 +97,42 @@ module HTree
         elts << elt.fold_element {|e, es| yield e, es }
       }
       Doc.new(elts)
+    end
+
+    def filter
+      elts = []
+      self.each {|elt|
+        if yield elt
+          if Elem === elt
+            elts << elt.filter {|e| yield e }
+          else
+            elts << elt
+          end
+        end
+      }
+      Doc.new(elts)
+    end
+
+    def filter_element
+      filter {|e| !(Elem === e) or yield e }
+    end
+
+    def filter_with_path
+      elts = []
+      self.each_with_path('') {|elt, path|
+        if yield elt, path
+          if Elem === elt
+            elts << elt.filter_with_path(path) {|e, p| yield e, p }
+          else
+            elts << elt
+          end
+        end
+      }
+      Doc.new(elts)
+    end
+
+    def filter_element_with_path
+      filter_with_path {|e, p| !(Elem === e) or yield e, p }
     end
 
     # second argument for not-found?
@@ -152,7 +191,7 @@ module HTree
       @elts.each {|e| yield e }
     end
 
-    def each_with_path
+    def each_with_path(prefix=nil)
       return unless @elts
       count = {}
       @elts.each {|elt|
@@ -167,7 +206,11 @@ module HTree
         n = pos[node_test] += 1
         child_path = node_test
         child_path += "[#{n}]" unless n == 1 && count[node_test] == 1
-        yield elt, child_path
+        if prefix
+          yield elt, "#{prefix}/#{child_path}"
+        else
+          yield elt, child_path
+        end
       }
     end
 
@@ -182,8 +225,8 @@ module HTree
     def traverse_with_path(path)
       yield self, path
       return unless @elts
-      each_with_path {|elt, relpath|
-        elt.traverse_with_path("#{path}/#{relpath}") {|e, p|
+      each_with_path(path) {|elt, child_path|
+        elt.traverse_with_path(child_path) {|e, p|
           yield e, p
         }
       }
@@ -199,6 +242,36 @@ module HTree
       else
         yield self, nil
       end
+    end
+
+    def filter
+      return self if self.empty_element?
+      elts = []
+      self.each {|elt|
+        if yield elt
+          if Elem === elt
+            elts << elt.filter {|e| yield e }
+          else
+            elts << elt
+          end
+        end
+      }
+      Elem.new(self.stag, elts, self.etag)
+    end
+
+    def filter_with_path(path)
+      return self, path if self.empty_element?
+      elts = []
+      self.each_with_path(path) {|elt, child_path|
+        if yield elt, child_path
+          if Elem === elt
+            elts << elt.filter_with_path(child_path) {|e, p| yield e, p }
+          else
+            elts << elt
+          end
+        end
+      }
+      Elem.new(self.stag, elts, self.etag)
     end
 
     def raw_string
