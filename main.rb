@@ -104,23 +104,39 @@ class Entry
   end
 
   def next_timing
+    min = @config['MinimumInterval'] # xxx: should support units other than second.
+    max = @config['MaximumInterval']
+    if !min
+      if max && max < DefaultMinimumInterval
+        min = max
+      else
+        min = DefaultMinimumInterval
+      end
+    end
+    if !max
+      if min && DefaultMaximumInterval < min
+        max = min
+      else
+        max = DefaultMaximumInterval
+      end
+    end
+    max = min if max < min
     if @status['_update_info']
       Time.now
     elsif e1 = find_first_error
-      min = @config.fetch('MinimumInterval', DefaultMinimumInterval) # xxx: should support units other than second.
       e2 = find_last_error
       e1t = e1['clientDateEnd']
       e2t = e2['clientDateEnd']
       if e1.equal? e2
-        e1t + min
+        r = e1t + min
       else
-        e2t + (e2t - e1t)
+        r = e2t + (e2t - e1t)
       end
+      if r < e1t + min
+        r = e1t + min
+      end
+      r
     elsif s1 = find_first_200_with_current_content # Is there any 200?
-      min = @config.fetch('MinimumInterval', DefaultMinimumInterval) # xxx: should support units other than second.
-      max = @config.fetch('MaximumInterval', DefaultMaximumInterval)
-      min = max if max < min
-
       s2 = find_last_success
       s2t = s2['clientDateEnd'] || s2['clientDateBeg']
 
@@ -312,7 +328,7 @@ class Entry
     t = HTree.parse(decoded_content)
 
     title = t.title
-    log['extractedTitle'] = title.to_s if title
+    log['extractedTitle'] = title.to_s.strip if title
 
     author = t.author
     log['extractedAuthor'] = author.to_s if author
@@ -372,11 +388,17 @@ class Entry
       ignore_element = []
     end
 
+    ignore_text = []
+    if ignore_text_raw = config['IgnoreText']
+      ignore_text_raw.scan(%r{/((?:[^/\\]|\\.)*)/}) { ignore_text << Regexp.compile($1) }
+    end
+
     t = tree.make_loc.filter {|e|
       path = e.path.sub(%r{^doc\(\)}, '')
       e = e.to_node
       not (
-        (e.text? && /\A\s*\z/ =~ e.to_s) ||
+        (e.text? && (/\A\s*\z/ =~ e.to_s ||
+                     ignore_text.any? {|pat| pat =~ e.to_s })) ||
         (e.elem? && (%r[\A(?:\{http://www.w3.org/1999/xhtml\})?style\z] =~ e.name ||
                      %r[\A(?:\{http://www.w3.org/1999/xhtml\})?script\z] =~ e.name ||
                      ignore_element.include?(e.name))) ||
@@ -392,6 +414,7 @@ class Entry
     checksum_filter.concat ['IgnoreClass', *ignore_class] if !ignore_class.empty?
     checksum_filter.concat ['IgnoreID', *ignore_id] if !ignore_id.empty?
     checksum_filter.concat ['IgnoreElement', *ignore_element] if !ignore_element.empty?
+    checksum_filter.concat ['IgnoreText', *ignore_text] if !ignore_text.empty?
 
     [t, checksum_filter]
   end
