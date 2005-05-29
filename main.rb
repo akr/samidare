@@ -215,6 +215,9 @@ class Entry
       end
       opts['If-None-Match'] = h['eTag'] if h['eTag']
     end
+    if @config.include? 'Header'
+      opts.update @config['Header']
+    end
     #PP.pp([uri, opts], STDERR) if $VERBOSE
     page = nil
     meta = nil
