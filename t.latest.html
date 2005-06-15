@@ -12,8 +12,8 @@
     <h1>五月雨サンプルアンテナ</h1>
     <div class="day" _iter="
       [
-        ['General', self['antenna'].find_all {|v| /2ch/ !~ v['URI'] }],
-        ['2ch', self['antenna'].find_all {|v| /2ch/ =~ v['URI'] }],
+        ['General', self['antenna'].find_all {|v| /read\.cgi|www\.ichigobbs\.net/ !~ v['URI'] }],
+        ['bbs', self['antenna'].find_all {|v| /read\.cgi|www\.ichigobbs\.net/ =~ v['URI'] }],
         ['Update information is taken from other system:', self['update_info']]
       ].each//category,entries">
       <h2 _text="category">category</h2>
@@ -24,9 +24,27 @@
               entry['last-modified'] ?
               entry['last-modified'].strftime('%m-%d %H:%M') :
               '- no log -'">date</span>
-            <span _iter="
-              [entry['_log'].map {|log| log['content'] }.compact.reverse.find {|content| content.exist? }].each//content
-              ">&#32;<a _if="content" _else=x _attr_href="content.pathname">C</a><span _template=x>X</span>&#32;</span>
+            <span _if="true">&#32;</span>
+            <span _if="log =
+              entry['_log'].compact.reverse.inject(nil) {|h0, h1|
+                if !h1['content'] || !h1['content'].exist?
+                  h0
+                elsif !h0
+                  h1
+                elsif (h0['checksum'] &&
+                       h1['checksum'] &&
+                       h0['checksum'] == h1['checksum']) ||
+                      (h0['checksum_filtered'] &&
+                       h1['checksum_filtered'] &&
+                       h0['checksum_filtered'] == h1['checksum_filtered'])
+                  h1
+                else
+                  break h0
+                end}" _else=x>
+              <a  _attr_href="log['content'].pathname">C</a>
+            </span>
+            <span _template=x>X</span>
+            <span _if="true">&#32;</span>
             <a _attr_href="entry['linkURI']">
               <span _text="entry['title']">title</span>
               <span _if="author = entry['author']"> (<span _text="author">author</span>)</span>
