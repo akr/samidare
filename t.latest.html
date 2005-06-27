@@ -12,9 +12,9 @@
     <h1>五月雨サンプルアンテナ</h1>
     <div class="day" _iter="
       [
-        ['General', self['antenna'].find_all {|v| /read\.cgi|www\.ichigobbs\.net/ !~ v['URI'] }],
-        ['bbs', self['antenna'].find_all {|v| /read\.cgi|www\.ichigobbs\.net/ =~ v['URI'] }],
-        ['Update information is taken from other system:', self['update_info']]
+        ['General', data['antenna'].find_all {|v| /read\.cgi|www\.ichigobbs\.net/ !~ v['URI'] }],
+        ['bbs', data['antenna'].find_all {|v| /read\.cgi|www\.ichigobbs\.net/ =~ v['URI'] }],
+        ['Update information is taken from other system:', data['update_info']]
       ].each//category,entries">
       <h2 _text="category">category</h2>
       <div class="body">

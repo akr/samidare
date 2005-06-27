@@ -17,6 +17,7 @@ require 'autofile'
 require 'htree'
 require 'string-util'
 require 'tempfile'
+require 'presen'
 
 CONFIG_FILENAME = 'config.yml'
 STATUS_FILENAME = 'status.rm'
@@ -1163,6 +1164,7 @@ class Samidare
   end
 
   def generate_output(data)
+    data = Presen.new(data)
     result = HTree.expand_template(GuessCharsetPathname.new(@opt_template), data, '')
     result << "\n" if /\n\z/ !~ result
     if @opt_output != '-'
