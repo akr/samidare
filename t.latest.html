@@ -25,22 +25,7 @@
               entry['last-modified'].strftime('%m-%d %H:%M') :
               '- no log -'">date</span>
             <span _if="true">&#32;</span>
-            <span _if="log =
-              entry['_log'].compact.reverse.inject(nil) {|h0, h1|
-                if !h1['content'] || !h1['content'].exist?
-                  h0
-                elsif !h0
-                  h1
-                elsif (h0['checksum'] &&
-                       h1['checksum'] &&
-                       h0['checksum'] == h1['checksum']) ||
-                      (h0['checksum_filtered'] &&
-                       h1['checksum_filtered'] &&
-                       h0['checksum_filtered'] == h1['checksum_filtered'])
-                  h1
-                else
-                  break h0
-                end}" _else=x>
+            <span _if="log = current_cache(entry)" _else=x>
               <a  _attr_href="log['content'].pathname">C</a>
             </span>
             <span _template=x>X</span>
