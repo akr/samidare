@@ -71,9 +71,10 @@ class AutoFile
   ExtSynonym.default = []
 
   def generate_filename_candidates(filename_hint, initial_content, content_type)
+    filename_hint = filename_hint.dup
     base = nil
     ext = nil
-    if %r{\A(http|ftp):/*} =~ filename_hint
+    if %r{\A(http|https|ftp):/*} =~ filename_hint
       filename_hint = $'
       filename_hint = $` if /[?#]/ =~ filename_hint
     end
