@@ -126,7 +126,7 @@ class AutoFile
       time = Time.now
       base << "_#{time.strftime('%m-%d')}"
       #yield "#{PREFIX}#{base}#{ext}"
-      base << "_#{time.strftime('%H:%M')}"
+      base << "_#{time.strftime('%H-%M')}"
       yield "#{PREFIX}#{base}#{ext}"
       base << ":#{time.strftime('%S')}"
       yield "#{PREFIX}#{base}#{ext}"
