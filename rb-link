@@ -97,7 +97,7 @@ def main
   open_output {|out|
     out.extend CountOutputLine
     interpreter_path = File.join(Config::CONFIG["bindir"], Config::CONFIG["ruby_install_name"])
-    out.print "#! #{interpreter_path}\n"
+    out.print "#!#{interpreter_path}\n"
     included = {}
     expand_require(out, script, libdirs, true, included)
     if $dep_output_filename
