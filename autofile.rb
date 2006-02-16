@@ -100,6 +100,8 @@ class AutoFile
       ext = '.xml'
     elsif content_type == 'text/xml'
       ext = '.xml'
+    elsif /<feed\b/i =~ initial_content
+      ext = ".xml"
     elsif /<title/i =~ initial_content
       ext = '.html'
     elsif /\.[a-z0-9]{1,5}\z/ =~ filename_hint

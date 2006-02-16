@@ -352,10 +352,32 @@ class Entry
                                '{http://my.netscape.com/rdf/simple/0.9/}link')
         base_uri = URI.parse(log['baseURI'] || @config['URI'])
         link_uri = base_uri + link.extract_text.to_s.strip
-        if link_uri.scheme == 'http' && base_uri.host == link_uri.host # xxx: refine safety test
+        if link_uri.scheme == 'http' && base_uri.host.downcase == link_uri.host.downcase # xxx: refine safety test
           log['extractedLinkURI'] = link_uri.to_s
         end
       end
+    end
+
+    if root
+      ['http://www.w3.org/2005/Atom', 'http://purl.org/atom/ns#'].each {|xmlns|
+        if root.name == "{#{xmlns}}feed"
+          link_uri = nil
+          t.traverse_element("{#{xmlns}}link") {|e|
+            begin
+              next unless e.fetch_attr('rel').downcase == 'alternate'
+              base_uri = URI.parse(log['baseURI'] || @config['URI'])
+              link_uri = base_uri + e.fetch_attr('href').to_s.strip
+              break
+            rescue IndexError, ArgumentError
+            end
+          }
+          if link_uri and
+              link_uri.scheme == 'http' && base_uri.host.downcase == link_uri.host.downcase # xxx: refine safety test
+            log['extractedLinkURI'] = link_uri.to_s
+            break
+          end
+        end
+      }
     end
 
     t, checksum_filter = ignore_tree(t)
