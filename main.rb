@@ -245,6 +245,9 @@ class Entry
     backtrace = nil
     begin
       page = timeout(@config['Timeout'] || 200) { URI.parse(uri).read(opts) }
+      if page.empty?
+        trouble = "empty page"
+      end
       meta = page.meta
       status = page.status[0]
       status_message = page.status[1]
@@ -1423,8 +1426,16 @@ class Samidare
           pp data
           return
         end
+        STDERR.print "generating output..." if $VERBOSE
+        t1 = Time.now
         generate_output(data)
+        t2 = Time.now
+        STDERR.puts " #{t2-t1}sec" if $VERBOSE
+        STDERR.print "generating lirs..." if $VERBOSE
+        t1 = Time.now
         generate_lirs(data)
+        t2 = Time.now
+        STDERR.puts " #{t2-t1}sec" if $VERBOSE
       end
     }
     #PP.pp(data, STDERR) if $VERBOSE
