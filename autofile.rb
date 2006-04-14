@@ -83,8 +83,8 @@ class AutoFile
       filename_hint = $`
     end
 
-    # `php' doesn't express content at all.
-    if /\.php\z/ =~ filename_hint
+    # `php' and `cgi' doesn't express content at all.
+    if /\.(?:php|cgi)\z/ =~ filename_hint
       filename_hint = $`
     end
 
