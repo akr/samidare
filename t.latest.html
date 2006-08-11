@@ -13,7 +13,7 @@
     <h1>五月雨サンプルアンテナ</h1>
     <div class="day" _iter="
       [
-        ['General', data['antenna'].find_all {|v| /\.2ch\.net|read\.cgi|www\.ichigobbs\.net/ !~ v['URI'] }],
+        ['General', data['antenna'].find_all {|v| /\.2ch\.net|read\.cgi|www\.ichigobbs\.net|jbbs\.livedoor\.jp/ !~ v['URI'] }],
         ['bbs', data['antenna'].find_all {|v| /\.2ch\.net|read\.cgi|www\.ichigobbs\.net/ =~ v['URI'] }],
         ['Update information is taken from other system:', data['update_info']]
       ].each//category,entries">
