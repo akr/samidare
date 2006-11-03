@@ -14,7 +14,7 @@ class LIRS
 
   def LIRS.decode(f)
     lirs = LIRS.new
-    f.each {|line|
+    f.each_line {|line|
       lirs << Record.decode(line) if /^#/ !~ line
     }
     lirs
