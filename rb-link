@@ -42,6 +42,8 @@ def expand_require(out, filename, dirs, main, included={})
 	    out.print line
 	  end
 	end
+      elsif /^__END__$/ =~ line
+        break
       else
 	out.print line
       end
