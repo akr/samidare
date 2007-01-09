@@ -1,0 +1,48 @@
+= samidare - web page update checker
+<%
+  def version
+    File.read("VERSION").chomp
+  end
+%>
+== Author
+
+Tanaka Akira <akr@fsij.org>
+
+== License
+
+GPLv2 or later
+
+(rb-link and mconv.rb is the modified BSD license.)
+
+== Home Page
+
+((<URL:http://www.a-k-r.org/samidare/>))
+
+== Feature
+
+* Easy configuration: just list up URLs.
+* HTML generation by template.
+* tDiary theme supported.
+* generate/read LIRS.
+* check page content addition to Last-Modified.
+
+== Requirements
+
+* ruby 1.8.1 : http://www.ruby-lang.org/
+* htree 0.4 : http://raa.ruby-lang.org/project/htree/
+
+== Download
+
+* latest release: ((<samidare-<%=version%>.tar.gz|URL:samidare-<%=version%>.tar.gz>))
+
+* development version in CVS repository:
+
+  ((<URL:http://cvs.m17n.org/viewcvs/ruby/samidare/>)) or checkout with:
+
+    % cvs -d :pserver:anonymous@cvs.m17n.org:/cvs/ruby co samidare
+
+== Install
+
+  % make
+  % cp samidare /usr/local/bin
+
