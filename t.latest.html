@@ -38,8 +38,8 @@
               <span _text="entry['title']">title</span>
               <span _if="author = entry['author']"> (<span _text="author">author</span>)</span>
             </a>&#32;<span _text="entry['info']">[info]</span>[<span _iter="
-              entry['_log'].map {|log|
-                log['content']
+              entry['_log'].map {|l|
+                l['content']
               }.compact.find_all {|content|
                 content.exist?
               }.reverse.each_with_index//content,i
