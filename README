@@ -1,9 +1,5 @@
 = samidare - web page update checker
-<%
-  def version
-    File.read("VERSION").chomp
-  end
-%>
+
 == Author
 
 Tanaka Akira <akr@fsij.org>
@@ -16,7 +12,7 @@ GPLv2 or later
 
 == Home Page
 
-((<URL:http://www.a-k-r.org/samidare/>))
+http://www.a-k-r.org/samidare/
 
 == Feature
 
@@ -33,11 +29,11 @@ GPLv2 or later
 
 == Download
 
-* latest release: ((<samidare-<%=version%>.tar.gz|URL:samidare-<%=version%>.tar.gz>))
+* latest release: http://www.a-k-r.org/samidare/samidare-0.4.tar.gz
 
 * development version in CVS repository:
 
-  ((<URL:http://cvs.m17n.org/viewcvs/ruby/samidare/>)) or checkout with:
+  http://cvs.m17n.org/viewcvs/ruby/samidare/ or checkout with:
 
     % cvs -d :pserver:anonymous@cvs.m17n.org:/cvs/ruby co samidare
 
