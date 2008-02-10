@@ -18,7 +18,7 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 
-$KCODE = 'e'
+#$KCODE = 'e'
 
 require 'open-uri'
 require 'uri'
@@ -200,18 +200,18 @@ class Entry
     log = @config.dup
 
     log['clientDateBeg'] = client_date_1 = Time.now
-    STDERR.puts "#{client_date_1.iso8601} fetch start #{uri}" if $VERBOSE
+    STDERR.puts "#{client_date_1.iso8601} fetch start #{uri}\n" if $VERBOSE
     page, meta = fetch(log)
     log['clientDateEnd'] = client_date_2 = Time.now
     if $VERBOSE
       if log['trouble']
-        STDERR.puts "#{client_date_2.iso8601} fetch end ERROR: #{log['trouble']} #{uri}"
+        STDERR.puts "#{client_date_2.iso8601} fetch end ERROR: #{log['trouble']} #{uri}\n"
         if log['backtrace']
-          STDERR.puts "|#{client_date_2.iso8601} ERROR: #{log['trouble']} (#{log['exception_class']}) #{uri}"
-          log['backtrace'].each {|pos| STDERR.puts "| #{pos}" }
+          STDERR.puts "|#{client_date_2.iso8601} ERROR: #{log['trouble']} (#{log['exception_class']}) #{uri}\n"
+          log['backtrace'].each {|pos| STDERR.puts "| #{pos}\n" }
         end
       else
-        STDERR.puts "#{client_date_2.iso8601} fetch end #{log['status']} #{log['statusMessage']} #{uri}"
+        STDERR.puts "#{client_date_2.iso8601} fetch end #{log['status']} #{log['statusMessage']} #{uri}\n"
       end
     end
 
@@ -220,8 +220,8 @@ class Entry
         examine(page, meta, log)
       end
     rescue
-      STDERR.puts "|#{Time.now.iso8601} examine ERROR: #{$!.message} (#{$!.class}) #{uri}"
-      $!.backtrace.each {|pos| STDERR.puts "| #{pos}" }
+      STDERR.puts "|#{Time.now.iso8601} examine ERROR: #{$!.message} (#{$!.class}) #{uri}\n"
+      $!.backtrace.each {|pos| STDERR.puts "| #{pos}\n" }
 
       log['trouble'] = "exception"
       log['backtrace'] = $!.backtrace
@@ -321,6 +321,16 @@ class Entry
     }
     content_charset = content_charset.downcase
     log['contentCharset'] = content_charset if content_charset
+
+    if "".respond_to? :force_encoding
+      if content && content_charset
+        begin
+          enc = Encoding.find(content_charset)
+          content.force_encoding(enc)
+        rescue ArgumentError
+        end
+      end
+    end
 
     # checksum for gzip/deflate decoded content.
     # compression level is not affected.
@@ -476,10 +486,10 @@ class Entry
         if record.last_modified != '0' &&
            record.last_detected != '0' &&
            record.last_modified.to_i > record.last_detected.to_i
-          STDERR.puts "#{now.iso8601} info: strange LIRS: Last-Modified/Detected inversion: #{record.last_modified.to_i - record.last_detected.to_i}sec #{uri} #{record.encode.inspect}"
+          STDERR.puts "#{now.iso8601} info: strange LIRS: Last-Modified/Detected inversion: #{record.last_modified.to_i - record.last_detected.to_i}sec #{uri} #{record.encode.inspect}\n"
         end
         if record.last_modified != '0' && record.last_modified.to_i > now.to_i
-          STDERR.puts "#{now.iso8601} info: strange LIRS: future Last-Modified: #{record.last_modified.to_i - now.to_i}sec #{uri} #{record.encode.inspect}"
+          STDERR.puts "#{now.iso8601} info: strange LIRS: future Last-Modified: #{record.last_modified.to_i - now.to_i}sec #{uri} #{record.encode.inspect}\n"
         end
       }
     end
@@ -497,7 +507,7 @@ class Entry
     }
   rescue LIRS::Error
     # ignore invalid lirs file.
-    STDERR.puts "#{Time.now.iso8601} LIRS Error: #{uri}" if $VERBOSE
+    STDERR.puts "#{Time.now.iso8601} LIRS Error: #{uri}\n" if $VERBOSE
   end
 
   def path2pattern(*paths)
@@ -522,7 +532,8 @@ class Entry
   def decode_content_encoding(page, log)
     content = page
     if page.content_encoding.empty?
-      if /\A\x1f\x8b/ =~ content # gziped?
+      content = content.dup.force_encoding("ascii-8bit") if content.respond_to? :force_encoding
+      if /\A\x1f\x8b/n =~ content # gziped?
         begin
           content = content.decode_gzip
         rescue Zlib::Error
@@ -588,11 +599,11 @@ class Entry
           }
         end
       }
-      STDERR.puts "LIRS total: #{count_update} / #{count_interest} / #{count_all} - #{@config['URI']}" if $VERBOSE
+      STDERR.puts "LIRS total: #{count_update} / #{count_interest} / #{count_all} - #{@config['URI']}\n" if $VERBOSE
     rescue
       # External update information is a just hint.
       # So it is ignorable even if it has some trouble.
-      STDERR.puts "check_lirs: error on #{@config['URI']}: #$!"
+      STDERR.puts "check_lirs: error on #{@config['URI']}: #$!\n"
       #pp $!.backtrace
     end
   end
@@ -664,7 +675,7 @@ class Entry
       end
     }
 
-    STDERR.puts "HTML total: #{count_update} / #{count_interest} - #{@config['URI']}" if $VERBOSE
+    STDERR.puts "HTML total: #{count_update} / #{count_interest} - #{@config['URI']}\n" if $VERBOSE
   end
 
   def check_html(new_log=nil)
@@ -683,7 +694,7 @@ class Entry
     rescue
       # External update information is a just hint.
       # So it is ignorable even if it has some trouble.
-      STDERR.puts "check_html error on #{@config['URI']}: #$!"
+      STDERR.puts "check_html error on #{@config['URI']}: #$!\n"
     end
   end
 
@@ -971,8 +982,8 @@ class Entry
 
   def dump_filenames2
     log1, log2 = recent_log2
-    puts log1['content'].pathname if log1
-    puts log2['content'].pathname if log2
+    puts "#{log1['content'].pathname}\n" if log1
+    puts "#{log2['content'].pathname}\n" if log2
   end
 
   def diff_content
@@ -997,8 +1008,8 @@ class Entry
       text2 << [n.to_s, path]
     }
 
-    puts "checksum1: #{tree1.extract_text.to_s.sum} #{checksum_filter1.inspect} #{filename1}"
-    puts "checksum2: #{tree2.extract_text.to_s.sum} #{checksum_filter2.inspect} #{filename2}"
+    puts "checksum1: #{tree1.extract_text.to_s.sum} #{checksum_filter1.inspect} #{filename1}\n"
+    puts "checksum2: #{tree2.extract_text.to_s.sum} #{checksum_filter2.inspect} #{filename2}\n"
 
     [text1.length, text2.length].min.times {
       t1, p1 = text1.last
@@ -1023,7 +1034,7 @@ class Entry
         pp [text1[i], text2[i]]
         num -= 1
         if num == 0
-          puts "..."
+          puts "...\n"
           break
         end
       end
@@ -1079,7 +1090,7 @@ class Samidare
         stat1 = target.stat
         if nonblock
           unless target.flock(File::LOCK_EX | File::LOCK_NB)
-            STDERR.puts "fail to lock: #{filename}"
+            STDERR.puts "fail to lock: #{filename}\n"
             return
           end
         else
@@ -1128,7 +1139,7 @@ class Samidare
 
   def deep_freeze(o)
     objs = []
-    o = Marshal.load(Marshal.dump(o), lambda {|obj| objs << obj })
+    o = Marshal.load(Marshal.dump(o), lambda {|obj| objs << obj; obj })
     objs.each {|obj| obj.freeze }
     o
   end
@@ -1214,7 +1225,7 @@ class Samidare
       output_file(@opt_output, result)
       output_file(@opt_output + '.gz', result.encode_gzip)
     else
-      puts result
+      puts "#{result}\n"
     end
   end
 

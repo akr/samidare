@@ -64,8 +64,8 @@ class LIRS
     def Record.decode(l)
       l = l.sub(/\r?\n\z/, '')
       a = []
-      l.scan(/((?:[^,\\]|\\[\0-\377])*),/) {|quoted_field,|
-	a.push(quoted_field.gsub(/\\([\0-\377])/) { $1 })
+      l.scan(/((?:[^,\\]|\\.)*),/m) {|quoted_field,|
+	a.push(quoted_field.gsub(/\\(.)/m) { $1 })
       }
       record_header = a.shift
       raise LIRS::Error.new("no record header") if record_header != RecordHeader

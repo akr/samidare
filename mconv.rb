@@ -1,3 +1,4 @@
+# -*- coding: ASCII-8BIT -*-
 # mconv.rb - character code conversion library using iconv
 #
 # Copyright (C) 2003 Tanaka Akira  <akr@fsij.org>
@@ -28,13 +29,19 @@ require 'iconv'
 
 module Mconv
   def Mconv.internal_mime_charset
-    case $KCODE
+    if Object.const_defined? :Encoding
+      enc = Encoding.default_external.name
+    else
+      enc = $KCODE
+    end
+    case enc
     when /\Ae/i; 'euc-jp'
     when /\As/i; 'shift_jis'
     when /\Au/i; 'utf-8'
     when /\An/i; 'iso-8859-1'
+    when /ascii-8bit/i; 'iso-8859-1'
     else
-      raise "unknown $KCODE: #{$KCODE.inspect}"
+      raise "unknown default external encoding : #{enc}"
     end
   end
 
@@ -47,9 +54,13 @@ module Mconv
 
     result = ''
     rest = str
+    if rest.respond_to? :force_encoding
+      rest = rest.dup.force_encoding("ascii-8bit")
+    end
 
     begin
-      result << ic.iconv(rest)
+      s = ic.iconv(rest)
+      result << s
     rescue Iconv::Failure
       result << $!.success
 
@@ -109,9 +120,12 @@ module Mconv
   end
 
   def Mconv.guess_charset_list(str)
+    if str.respond_to? :force_encoding
+      str = str.dup.force_encoding("ascii-8bit")
+    end
     case str
-    when /\A\xff\xfe/; return ['utf-16le']
-    when /\A\xfe\xff/; return ['utf-16be']
+    when /\A\xff\xfe/n; return ['utf-16le']
+    when /\A\xfe\xff/n; return ['utf-16be']
     end
     count = {}
     CharsetTable.each {|name, regexp|
@@ -150,11 +164,61 @@ module Mconv
     end
     charset
   end
+
+  ValidPrefix = {
+    'us-ascii' => /\A[\x00-\x7f]*/,
+    'iso-8859-1' => /\A[\x00-\xff]*/n,
+    'euc-jp' =>
+      /\A(?:
+           [\x00-\x7f]                       (?# ASCII)
+         | [\xa1-\xfe][\xa1-\xfe]            (?# JIS X 0208)
+         | \x8e(?:([\xa1-\xdf])              (?# JIS X 0201 Katakana)
+                 |([\xe0-\xfe]))             (?# There is no character in E0 to FE)
+         | \x8f[\xa1-\xfe][\xa1-\xfe]        (?# JIS X 0212)
+         )*/nx,
+    'shift_jis' =>
+      /\A(?:
+           [\x00-\x7f]                       (?# JIS X 0201 Latin)
+         | ([\xa1-\xdf])                     (?# JIS X 0201 Katakana)
+         | [\x81-\x9f\xe0-\xef][\x40-\x7e\x80-\xfc]      (?# JIS X 0208)
+         | ([\xf0-\xfc][\x40-\x7e\x80-\xfc]) (?# extended area)
+         )*/nx,
+    'utf-8' =>
+      /\A(?:
+           [\x00-\x7f]
+         | [\xc0-\xdf][\x80-\xbf]
+         | [\xe0-\xef][\x80-\xbf][\x80-\xbf]
+         | [\xf0-\xf7][\x80-\xbf][\x80-\xbf][\x80-\xbf]
+         | [\xf8-\xfb][\x80-\xbf][\x80-\xbf][\x80-\xbf][\x80-\xbf]
+         | [\xfc-\xfd][\x80-\xbf][\x80-\xbf][\x80-\xbf][\x80-\xbf][\x80-\xbf]
+         )*/nx
+  }
+  def Mconv.validize(str, charset)
+    if str.respond_to? :force_encoding
+      enc = str.encoding
+      str = str.dup.force_encoding("ascii-8bit")
+    end
+    pat = ValidPrefix[charset]
+    ret = ''
+    until str.empty?
+      pat =~ str
+      ret << str[0, $&.length]
+      str = str[$&.length..-1]
+      unless str.empty?
+        ret << '?' 
+        str = str[1..-1]
+      end
+    end
+    if str.respond_to? :force_encoding
+      ret.force_encoding enc
+    end
+    ret
+  end
 end
 
 class String
   def decode_charset(charset)
-    Mconv.conv(self, Mconv.internal_mime_charset, charset)
+    Mconv.validize(Mconv.conv(self, Mconv.internal_mime_charset, charset), Mconv.internal_mime_charset)
   end
 
   def encode_charset(charset)

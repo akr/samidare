@@ -89,6 +89,7 @@ class AutoFile
   ExtSynonym.default = []
 
   def generate_filename_candidates(filename_hint, initial_content, content_type)
+    initial_content = initial_content.dup.force_encoding("ascii-8bit") if initial_content.respond_to? :force_encoding
     filename_hint = filename_hint.dup
     base = nil
     ext = nil
