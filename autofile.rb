@@ -98,7 +98,7 @@ class AutoFile
       filename_hint = $` if /[?#]/ =~ filename_hint
     end
 
-    if /\A\x1f\x8b/ !~ initial_content && /\.gz\z/ =~ filename_hint
+    if /\A\x1f\x8b/n !~ initial_content && /\.gz\z/ =~ filename_hint
       filename_hint = $`
     end
 
