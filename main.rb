@@ -450,7 +450,7 @@ class Entry
     t = tree.make_loc.filter {|e|
       path = e.path.sub(%r{^doc\(\)}, '')
       e = e.to_node
-      not (
+      not(
         (e.text? && (/\A\s*\z/ =~ e.to_s ||
                      ignore_text.any? {|pat| pat =~ e.to_s })) ||
         (e.elem? && (%r[\A(?:\{http://www.w3.org/1999/xhtml\})?style\z] =~ e.name ||
