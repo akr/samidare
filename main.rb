@@ -312,6 +312,10 @@ class Entry
     content, content_encoding = decode_content_encoding(page, log)
     log['content'] = AutoFile.new(uri, content, content_type)
 
+    if 1000000 < content.length
+      raise ArgumentError, "page too big (#{content.length}) : #{uri}"
+    end
+
     content_charset = @config.fetch('ForceCharset') {
       c = page.charset { nil }
       c = nil if c && !Mconv.valid_charset?(c)
