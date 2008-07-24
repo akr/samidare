@@ -3,7 +3,6 @@
     Periodical: true
   - http://marimo.deisui.org/fm.lirs.gz
   - http://a.northeye.net/natsumican.lirs.gz
-  - http://www.shudo.net/antenna/natsumican.lirs.gz
 
 # tDiary
 -
@@ -15,11 +14,10 @@
   - IgnoreClass: sidebar recentsubtitles calendar hatena-counter
   - http://d.hatena.ne.jp/hatenadiary/
 
-- URI: http://lambda.weblogs.com/xml/rss.xml
-  LinkURI: http://lambda.weblogs.com/
-  Title: Lambda the Ultimate
+- URI: http://lambda-the-ultimate.org/
+  IgnoreClass: links
+  MinimumInterval: 36000
 - http://www.pythonware.com/daily/
-- http://blog.cnetnetworks.jp/lessig/
 - URI: http://ukai.org/mu/mu.rdf
   LinkURI: http://ukai.org/mu/
   Title: Mu Antenna
