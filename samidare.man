@@ -1,0 +1,143 @@
+.TH SAMIDARE 1 "July 2008" "samidare 0.6" "User Commands"
+.SH NAME
+samidare \- web page update checker
+
+.SH SYNOPSIS
+.B samidare
+.RI [ OPTION ]...
+.RI [ URL ]...
+
+.SH DESCRIPTION
+.PP
+Samidare checks web page updates.
+It takes a list of URLs in a configuration file, config.yml, and
+checks last update time of them.
+A HTML file, latest.html, is generated to show the updates.
+
+
+.SH OPTIONS
+.TP
+--help
+show help message.
+
+.TP
+-v, --verbose
+specify verbose mode.
+
+.TP
+-n, --no-check
+don't check web.
+output generation only.
+
+.TP
+-f, --force
+force check (avoid timing control mechanism)
+
+.TP
+-o, --output=filename
+specify output html filename.
+
+.TP
+--output-lirs=filename
+specify output lirs filename.
+
+.TP
+-T, --template=filename
+specify template filename.
+
+.TP
+-t, --timing
+show check time of pages.
+
+.TP
+--dump-config
+dump flatten configuration.
+
+.TP
+--dump-status
+dump status.
+If URLs is specified, the status of specified pages are shown.
+
+.TP
+--dump-template-data
+dump data for expand template.
+The "data" variable in template file refer this.
+
+.TP
+--dump-filenames
+dumps locally stored filenames of pages specified by URLs.
+
+.TP
+--dump-filenames2
+dumps locally stored recent two filenames of pages specified by URLs.
+
+.TP
+--remove-entry
+remove entry of pages specified by URLs.
+
+.TP
+--diff-content
+show difference of recent two files of specified URLs.
+
+.SH USAGE
+
+samidare is configured by "config.yml" and "t.latest.html" by default.
+
+samidare generates "latest.html" and "sites.lirs.gz"
+
+samidare uses "status.rm" and "tmp" to record status of pages.
+
+"config.yml" is a configuration file in YAML format.
+See EXAMPLES section for its content.
+
+"t.latest.html" is a template file.
+In the file, "data" variable can be used.
+See the document of htree library for template directives.
+
+So you can run samidare as follows.
+
+  % cd $HOME
+  % mkdir samidare
+  % cd samidare
+  % vi config.yml
+  % vi t.latest.html            # optional
+  % samidare
+  % w3m latest.html             # view the result
+
+If you want to publish the result, use symbolic link to latest.html and sites.lirs.gz as follows.
+
+  % mkdir public_html
+  % mkdir public_html/samidare
+  % cd public_html/samidare
+  % ln -s ../../samidare/latest.html .
+  % ln -s ../../samidare/sites.lirs.gz .
+
+.SH EXAMPLES
+
+The configuration file is described in YAML format.
+
+The simplest configuration is list of URLs as follows.
+
+  - http://www.example.org/blog/
+  - http://www.example.net/
+
+.SH FILES
+
+"config.yml" and "t.latest.html" is configuration file.
+
+"latest.html" and "sites.lirs.gz" is output.
+
+"status.rm" and "tmp" is used by samidare internally.
+
+.SH SECURITY
+
+samidare stores pages in tmp directory.
+If it is published via your web server, XSS (cross site scripting) is possible.
+So the directory should not be published.
+
+.SH AUTHOR
+Tanaka Akira
+
+.SH SEE ALSO
+
+htree
