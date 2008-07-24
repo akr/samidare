@@ -1,4 +1,4 @@
-.TH SAMIDARE 1 "July 2008" "samidare 0.6" "User Commands"
+.TH SAMIDARE 1 "July 2008" "samidare 0.7" "User Commands"
 .SH NAME
 samidare \- web page update checker
 
