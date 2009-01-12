@@ -312,8 +312,10 @@ class Entry
     content, content_encoding = decode_content_encoding(page, log)
     log['content'] = AutoFile.new(uri, content, content_type)
 
-    if 1000000 < content.length
-      raise ArgumentError, "page too big (#{content.length}) : #{uri}"
+    if 2000000 < content.length
+      log['checksum'] = content.sum
+      STDERR.puts "#{Time.now.iso8601} page too big (#{content.length})\n" if $VERBOSE
+      return
     end
 
     content_charset = @config.fetch('ForceCharset') {
