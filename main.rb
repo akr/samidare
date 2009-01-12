@@ -114,6 +114,7 @@ class Entry
       intervals << curr - prev if prev && prev < curr
       prev = curr
     }
+    return nil if intervals.empty?
     t = last_modified + intervals.min
     begin # adjust server/client time difference
       t += (h['clientDateEnd'] || h['clientDateBeg']) - Time.httpdate_robust(h['serverDateString'])
