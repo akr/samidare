@@ -315,7 +315,7 @@ class Entry
 
     if 2000000 < content.length
       log['checksum'] = content.sum
-      STDERR.puts "#{Time.now.iso8601} page too big (#{content.length})\n" if $VERBOSE
+      STDERR.puts "#{Time.now.iso8601} #{uri} page too big (#{content.length})\n" if $VERBOSE
       return
     end
 
