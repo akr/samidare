@@ -1466,12 +1466,12 @@ class Samidare
         t1 = Time.now
         generate_output(data)
         t2 = Time.now
-        STDERR.puts " #{t2-t1}sec" if $VERBOSE
+        STDERR.puts " #{(t2-t1).to_f}sec" if $VERBOSE
         STDERR.print "generating lirs..." if $VERBOSE
         t1 = Time.now
         generate_lirs(data)
         t2 = Time.now
-        STDERR.puts " #{t2-t1}sec" if $VERBOSE
+        STDERR.puts " #{(t2-t1).to_f}sec" if $VERBOSE
       end
     }
     #PP.pp(data, STDERR) if $VERBOSE
