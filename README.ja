@@ -1,53 +1,53 @@
-= $B8^7n1+(B
+= 五月雨
 
-$B8^7n1+$O(B Web $B%Z!<%8$N99?7$r4F;k$7!"99?7>pJs$r$^$H$a$FI=<($9$k%=%U%H%&%'%"$G$9!#(B
+五月雨は Web ページの更新を監視し、更新情報をまとめて表示するソフトウェアです。
 
-== $BFCD'(B
+== 特徴
 
-* $B@_Dj$,4JC1(B
+* 設定が簡単
 
-  $B@_Dj%U%!%$%k$K$O4pK\E*$K$O(B URL $B$rJB$Y$l$P$$$$$@$1$G$9!#(B
-  $B%?%$%H%k$dCx<T$N>pJs$O(B($B2DG=$JHO0O$G(B)$BBP>]$N%Z!<%8<+BN$+$iCj=P$5$l$^$9!#(B
+  設定ファイルには基本的には URL を並べればいいだけです。
+  タイトルや著者の情報は(可能な範囲で)対象のページ自体から抽出されます。
 
-  $B$^$?!"@_Dj%U%!%$%k$N7A<0$O(B YAML $B$G$9!#(B
+  また、設定ファイルの形式は YAML です。
 
-* $B%F%s%W%l!<%H$K$h$k(B HTML $B@8@.(B
+* テンプレートによる HTML 生成
 
-  HTML $B@8@.$O%F%s%W%l!<%H$K$h$C$F9T$o$l!"%F%s%W%l!<%H$N=$@5$K$h$C$F!"(B
-  $B=PNO$r%+%9%?%^%$%:$9$k$3$H$,$G$-$^$9!#(B
+  HTML 生成はテンプレートによって行われ、テンプレートの修正によって、
+  出力をカスタマイズすることができます。
 
-* tDiary $B%F!<%^(B
+* tDiary テーマ
 
-  $B%G%U%)%k%H$N%F%s%W%l!<%H$,@8@.$9$k(B HTML $B$O(B tDiary $B%F!<%^$r;HMQ$G$-$k$h$&$K$J$C$F$$$^$9!#(B
-  $B$=$N$?$a!"(BtDiary $B$NK-IY$J%F!<%^$rMxMQ$9$k$3$H$,$G$-$^$9!#(B
+  デフォルトのテンプレートが生成する HTML は tDiary テーマを使用できるようになっています。
+  そのため、tDiary の豊富なテーマを利用することができます。
 
-* Web $B%Z!<%8$r%m!<%+%k$KJ]B8(B
+* Web ページをローカルに保存
 
-  $B%G%U%)%k%H$G$O:G?7$N(B 2$B$D$NHG$,J]B8$5$l$^$9!#(B
-  $BHG$N?t$O@_Dj2DG=$G$9!#(B
-  $B$^$?!"Nc$($P:GDc(B 12$B;~4VJ]B8$9$k$H$$$&$h$&$K!";~4V$r;XDj$9$k$3$H$b2DG=$G$9!#(B
+  デフォルトでは最新の 2つの版が保存されます。
+  版の数は設定可能です。
+  また、例えば最低 12時間保存するというように、時間を指定することも可能です。
 
-* LIRS $B7A<0$N99?7>pJs$r@8@.(B
-* LIRS $B7A<0$N99?7>pJs$rFI$_9~$a$k(B
-* $B>l9g$K$h$C$F$O(B HTML $B$N%Z!<%8$r99?7>pJs$H$7$F;HMQ2DG=(B
+* LIRS 形式の更新情報を生成
+* LIRS 形式の更新情報を読み込める
+* 場合によっては HTML のページを更新情報として使用可能
 
-* $B%Z!<%8$N99?7;~9o$,F@$i$l$J$$>l9g$K$G$b!"FbMF$NJQ2=$K$h$j99?7$r8!=P(B
+* ページの更新時刻が得られない場合にでも、内容の変化により更新を検出
 
-  $BFbMF$NJQ2=$O!"(BHTML $B$N%?%00J30$NItJ,$N%A%'%C%/%5%`$K$h$C$F8!=P$5$l$^$9!#(B
-  $B$3$N$?$a!"%?%0$NCf$,JQ2=$9$k>l9g!"$?$H$($P(B img $B%?%0$G(B URL $B$,Kh2sJQ2=$9$k9-9p$O99?7$H$O8+$J$5$l$^$;$s!#(B
+  内容の変化は、HTML のタグ以外の部分のチェックサムによって検出されます。
+  このため、タグの中が変化する場合、たとえば img タグで URL が毎回変化する広告は更新とは見なされません。
 
-  $B$^$?!"%F%-%9%H$N2DJQItJ,$,$"$k>l9g$G$b!"(B
-  $BJQ2=$rL5;k$9$k>l=j$r;XDj$G$-$^$9!#(B
-  $B$3$l$O(B HTML $BCf$N(B class, id $BB0@-$H(B XPath $BIw$J;XDj$,2DG=$G$9!#(B
+  また、テキストの可変部分がある場合でも、
+  変化を無視する場所を指定できます。
+  これは HTML 中の class, id 属性と XPath 風な指定が可能です。
 
-== $BI,MW$J%=%U%H%&%'%"(B
-* ruby-1.8.1 ($B$3$l$h$j8E$$$b$N$G$OF0$-$^$;$s(B)
+== 必要なソフトウェア
+* ruby-1.8.1 (これより古いものでは動きません)
   http://www.ruby-lang.org
-* htree ($B:G?7$,A0Ds$G$9(B)
+* htree (最新が前提です)
   http://cvs.m17n.org/cgi-bin/viewcvs/htree/?cvsroot=ruby
 
-== $BG[I[>l=j(B
+== 配布場所
 http://cvs.m17n.org/cgi-bin/viewcvs/samidare/?cvsroot=ruby
 
-== $B:n<T(B
-$BEDCf(B $BE/(B <akr@m17n.org>
+== 作者
+田中 哲 <akr@m17n.org>
