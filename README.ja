@@ -44,10 +44,10 @@
 * ruby-1.8.1 (これより古いものでは動きません)
   http://www.ruby-lang.org
 * htree (最新が前提です)
-  http://cvs.m17n.org/cgi-bin/viewcvs/htree/?cvsroot=ruby
+  https://github.com/akr/htree
 
 == 配布場所
-http://cvs.m17n.org/cgi-bin/viewcvs/samidare/?cvsroot=ruby
+https://github.com/akr/samidare
 
 == 作者
 田中 哲 <akr@m17n.org>
